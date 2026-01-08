@@ -88,10 +88,10 @@ class LineWidget(QWidget):
         
         # Audio channel picker
         self.channel_picker = QComboBox()
-        self.channel_picker.setMaximumWidth(70)
-        self.channel_picker.setMinimumWidth(70)
+        self.channel_picker.setMaximumWidth(60)
+        self.channel_picker.setMinimumWidth(60)
         for i in range(1, 9):
-            self.channel_picker.addItem(f"🔊 {i}", i)
+            self.channel_picker.addItem(f"{i}", i)
         self.channel_picker.setCurrentIndex(0)
         self.channel_picker.currentIndexChanged.connect(self._on_channel_changed)
         self.channel_picker.setStyleSheet("""
@@ -101,7 +101,7 @@ class LineWidget(QWidget):
                 border-radius: 3px;
                 padding: 2px 5px;
                 color: white;
-                font-size: 11px;
+                font-size: 14px;
                 font-weight: bold;
             }
             QComboBox:hover {
@@ -115,6 +115,7 @@ class LineWidget(QWidget):
                 color: white;
                 selection-background-color: #2a5a8a;
                 border: 1px solid #666;
+                font-size: 13px;
             }
         """)
         button_row.addWidget(self.channel_picker)
