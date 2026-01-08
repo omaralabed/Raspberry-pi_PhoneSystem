@@ -213,7 +213,7 @@ class MainWindow(QMainWindow):
             msg.setIcon(QMessageBox.Warning)
             msg.setWindowTitle("Channel In Use")
             msg.setText(f"Output Channel {new_channel} is already in use by Line {conflicting_line}.")
-            msg.setInformativeText("Do you want to use this channel anyway?")
+            msg.setInformativeText(f"Line {conflicting_line} will be disconnected from this output.\n\nDo you want to proceed?")
             msg.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
             msg.setDefaultButton(QMessageBox.Cancel)
             
@@ -245,10 +245,15 @@ class MainWindow(QMainWindow):
             result = msg.exec_()
             
             if result == QMessageBox.Yes:
-                # User confirmed - proceed with channel change
+                # User confirmed - disconnect conflicting line from output
+                conflicting_line_obj = self.sip_engine.get_line(conflicting_line)
+                conflicting_line_obj.set_audio_channel(0)  # Set to 0 (no output)
+                logger.info(f"Line {conflicting_line}: Disconnected from Output {new_channel}")
+                
+                # Now assign the new line to this channel
                 line = self.sip_engine.get_line(line_id)
                 line.set_audio_channel(new_channel)
-                logger.info(f"Line {line_id}: Channel changed to {new_channel} (confirmed)")
+                logger.info(f"Line {line_id}: Channel changed to {new_channel}")
                 self.route_audio_signal.emit(line_id, new_channel)
                 self._update_display()
             else:

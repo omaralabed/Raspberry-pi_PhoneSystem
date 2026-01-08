@@ -29,13 +29,15 @@ class AudioOutput:
         Initialize audio output
         
         Args:
-            channel: Output channel number (1-8)
+            channel: Output channel number (0=no output, 1-8=physical outputs)
         """
-        if not 1 <= channel <= 8:
-            raise ValueError("Channel must be between 1 and 8")
+        if not 0 <= channel <= 8:
+            raise ValueError("Channel must be between 0 and 8 (0=no output)")
         self.channel = channel
     
     def __str__(self):
+        if self.channel == 0:
+            return "No Output"
         return f"Out {self.channel}"
     
     def __repr__(self):
@@ -59,13 +61,13 @@ class PhoneLine:
         Args:
             line_id: Line number (1-8)
             sip_account_id: PJSIP account ID (set after registration)
-            default_output: Default output channel (1-8), defaults to line_id
+            default_output: Default output channel (0=no output, 1-8), defaults to 0
         """
         self.line_id = line_id
         self.sip_account_id = sip_account_id
         self.state = LineState.IDLE
-        # Default to same channel as line number (Line 1 -> Output 1, etc.)
-        self.audio_output = AudioOutput(default_output if default_output else line_id)
+        # Default to no output (0) - operator assigns manually
+        self.audio_output = AudioOutput(default_output if default_output is not None else 0)
         
         # Call information
         self.call_id = None
@@ -126,7 +128,7 @@ class PhoneLine:
         Set specific audio output channel
         
         Args:
-            channel: Output channel (1-8)
+            channel: Output channel (0=no output, 1-8)
             
         Returns:
             True if successful

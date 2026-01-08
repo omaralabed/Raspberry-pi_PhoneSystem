@@ -88,11 +88,12 @@ class LineWidget(QWidget):
         
         # Audio channel picker
         self.channel_picker = QComboBox()
-        self.channel_picker.setMaximumWidth(60)
-        self.channel_picker.setMinimumWidth(60)
+        self.channel_picker.setMaximumWidth(80)
+        self.channel_picker.setMinimumWidth(80)
+        self.channel_picker.addItem("None", 0)  # No output
         for i in range(1, 9):
             self.channel_picker.addItem(f"{i}", i)
-        self.channel_picker.setCurrentIndex(0)
+        self.channel_picker.setCurrentIndex(1)  # Default to channel 1
         self.channel_picker.currentIndexChanged.connect(self._on_channel_changed)
         self.channel_picker.setStyleSheet("""
             QComboBox {
@@ -171,13 +172,20 @@ class LineWidget(QWidget):
         # Status text
         self.status_label.setText(self.line.get_status_string())
         
-        # Audio routing - show output channel number
-        self.audio_label.setText(f"Out {self.line.audio_output.channel}")
+        # Audio routing - show output channel number or "No Output"
+        if self.line.audio_output.channel == 0:
+            self.audio_label.setText("No Output")
+        else:
+            self.audio_label.setText(f"Out {self.line.audio_output.channel}")
         
         # Update channel picker to match current channel
         current_channel = self.line.audio_output.channel
         self.channel_picker.blockSignals(True)
-        self.channel_picker.setCurrentIndex(current_channel - 1)
+        # Find the index for the channel value (0="None" is at index 0, channel 1 is at index 1, etc.)
+        for i in range(self.channel_picker.count()):
+            if self.channel_picker.itemData(i) == current_channel:
+                self.channel_picker.setCurrentIndex(i)
+                break
         self.channel_picker.blockSignals(False)
         
         # Show/hide hangup button
@@ -214,6 +222,9 @@ class LineWidget(QWidget):
         """)
         
         # Audio label color - cycle through colors for different outputs
-        colors = ['#4af', '#fa4', '#4f4', '#f4f', '#ff4', '#4ff', '#f44', '#44f']
-        color_idx = (self.line.audio_output.channel - 1) % len(colors)
-        self.audio_label.setStyleSheet(f"color: {colors[color_idx]}; font-weight: bold;")
+        if self.line.audio_output.channel == 0:
+            self.audio_label.setStyleSheet("color: #888; font-weight: bold;")  # Gray for no output
+        else:
+            colors = ['#4af', '#fa4', '#4f4', '#f4f', '#ff4', '#4ff', '#f44', '#44f']
+            color_idx = (self.line.audio_output.channel - 1) % len(colors)
+            self.audio_label.setStyleSheet(f"color: {colors[color_idx]}; font-weight: bold;")
