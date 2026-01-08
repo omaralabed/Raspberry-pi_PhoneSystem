@@ -4,7 +4,7 @@ Audio Widget - Audio Routing Controls
 """
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QLabel, QFrame, QGroupBox)
+                             QLabel, QFrame, QGroupBox, QGridLayout, QSpinBox)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 import logging
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class AudioWidget(QWidget):
     """
-    Audio routing controls and status display
+    Audio routing controls and status display with flexible output selection
     """
     
     def __init__(self, audio_router, parent=None):
@@ -45,100 +45,85 @@ class AudioWidget(QWidget):
         group_layout.setSpacing(5)
         
         # Info label
-        info_label = QLabel("Click 🔊 on any line\nto toggle IFB/PL")
+        info_label = QLabel("Click 🔊 on any line\nto cycle output channels")
         info_label.setFont(QFont("Arial", 9))
         info_label.setAlignment(Qt.AlignCenter)
         info_label.setWordWrap(True)
         group_layout.addWidget(info_label)
         
-        # IFB indicator
-        ifb_frame = QFrame()
-        ifb_frame.setFrameStyle(QFrame.Box)
-        ifb_frame.setStyleSheet("background-color: #1a3a5a; border: 1px solid #4a7aaa;")
-        ifb_layout = QVBoxLayout(ifb_frame)
-        ifb_layout.setContentsMargins(5, 5, 5, 5)
+        # Output channels display
+        channels_frame = QFrame()
+        channels_frame.setFrameStyle(QFrame.Box)
+        channels_frame.setStyleSheet("background-color: #2a2a2a; border: 1px solid #555;")
+        channels_layout = QVBoxLayout(channels_frame)
+        channels_layout.setContentsMargins(8, 8, 8, 8)
+        channels_layout.setSpacing(3)
         
-        ifb_title = QLabel("🎧 IFB (Talent)")
-        ifb_title.setFont(QFont("Arial", 10, QFont.Bold))
-        ifb_title.setStyleSheet("color: #4af;")
-        ifb_layout.addWidget(ifb_title)
+        channels_title = QLabel("Available Outputs")
+        channels_title.setFont(QFont("Arial", 10, QFont.Bold))
+        channels_title.setAlignment(Qt.AlignCenter)
+        channels_layout.addWidget(channels_title)
         
-        ifb_desc = QLabel("Interruptible Foldback\nChannels 1-2 (L/R)")
-        ifb_desc.setFont(QFont("Arial", 8))
-        ifb_desc.setAlignment(Qt.AlignLeft)
-        ifb_layout.addWidget(ifb_desc)
+        # Show outputs 1-8
+        for i in range(1, 9):
+            output_label = QLabel(f"Output {i}")
+            output_label.setFont(QFont("Arial", 8))
+            colors = ['#4af', '#fa4', '#4f4', '#f4f', '#ff4', '#4ff', '#f44', '#44f']
+            output_label.setStyleSheet(f"color: {colors[i-1]};")
+            channels_layout.addWidget(output_label)
         
-        group_layout.addWidget(ifb_frame)
+        group_layout.addWidget(channels_frame)
         
-        # PL indicator
-        pl_frame = QFrame()
-        pl_frame.setFrameStyle(QFrame.Box)
-        pl_frame.setStyleSheet("background-color: #5a3a1a; border: 1px solid #aa7a4a;")
-        pl_layout = QVBoxLayout(pl_frame)
-        pl_layout.setContentsMargins(5, 5, 5, 5)
+        # Test section
+        test_frame = QFrame()
+        test_frame.setFrameStyle(QFrame.Box)
+        test_frame.setStyleSheet("background-color: #2a2a2a; border: 1px solid #555;")
+        test_layout = QVBoxLayout(test_frame)
+        test_layout.setContentsMargins(5, 5, 5, 5)
         
-        pl_title = QLabel("📻 PL (Crew)")
-        pl_title.setFont(QFont("Arial", 10, QFont.Bold))
-        pl_title.setStyleSheet("color: #fa4;")
-        pl_layout.addWidget(pl_title)
+        test_title = QLabel("Test Audio Output")
+        test_title.setFont(QFont("Arial", 9, QFont.Bold))
+        test_title.setAlignment(Qt.AlignCenter)
+        test_layout.addWidget(test_title)
         
-        pl_desc = QLabel("Private Line\nChannels 3-4 (L/R)")
-        pl_desc.setFont(QFont("Arial", 8))
-        pl_desc.setAlignment(Qt.AlignLeft)
-        pl_layout.addWidget(pl_desc)
+        # Channel selector
+        selector_layout = QHBoxLayout()
+        selector_label = QLabel("Channel:")
+        selector_label.setFont(QFont("Arial", 9))
+        selector_layout.addWidget(selector_label)
         
-        group_layout.addWidget(pl_frame)
+        self.channel_spinbox = QSpinBox()
+        self.channel_spinbox.setRange(1, 8)
+        self.channel_spinbox.setValue(1)
+        self.channel_spinbox.setFont(QFont("Arial", 10))
+        selector_layout.addWidget(self.channel_spinbox)
         
-        # Test buttons
-        test_layout = QHBoxLayout()
-        test_layout.setSpacing(5)
+        test_layout.addLayout(selector_layout)
         
-        self.test_ifb_btn = QPushButton("Test IFB")
-        self.test_ifb_btn.setFont(QFont("Arial", 9))
-        self.test_ifb_btn.clicked.connect(self._on_test_ifb)
-        self.test_ifb_btn.setStyleSheet("""
+        # Test button
+        self.test_btn = QPushButton("🔊 Test Selected Output")
+        self.test_btn.setFont(QFont("Arial", 9))
+        self.test_btn.clicked.connect(self._on_test_output)
+        self.test_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2a4a6a;
+                background-color: #2a5a6a;
                 color: white;
                 border: none;
                 border-radius: 3px;
-                padding: 5px;
+                padding: 8px;
             }
             QPushButton:pressed {
-                background-color: #1a3a5a;
+                background-color: #1a4a5a;
             }
         """)
-        test_layout.addWidget(self.test_ifb_btn)
+        test_layout.addWidget(self.test_btn)
         
-        self.test_pl_btn = QPushButton("Test PL")
-        self.test_pl_btn.setFont(QFont("Arial", 9))
-        self.test_pl_btn.clicked.connect(self._on_test_pl)
-        self.test_pl_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #6a4a2a;
-                color: white;
-                border: none;
-                border-radius: 3px;
-                padding: 5px;
-            }
-            QPushButton:pressed {
-                background-color: #5a3a1a;
-            }
-        """)
-        test_layout.addWidget(self.test_pl_btn)
-        
-        group_layout.addLayout(test_layout)
+        group_layout.addWidget(test_frame)
         
         layout.addWidget(group)
     
-    def _on_test_ifb(self):
-        """Test IFB output"""
-        logger.info("Testing IFB output")
-        from ..phone_line import AudioOutput
-        self.audio_router.test_audio(AudioOutput.IFB, duration=1.0)
-    
-    def _on_test_pl(self):
-        """Test PL output"""
-        logger.info("Testing PL output")
-        from ..phone_line import AudioOutput
-        self.audio_router.test_audio(AudioOutput.PL, duration=1.0)
+    def _on_test_output(self):
+        """Test selected output channel"""
+        channel = self.channel_spinbox.value()
+        logger.info(f"Testing output channel {channel}")
+        self.audio_router.test_audio(channel, duration=1.0)

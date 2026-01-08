@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
     # Signals
     make_call_signal = pyqtSignal(int, str)  # line_id, phone_number
     hangup_signal = pyqtSignal(int)  # line_id
-    route_audio_signal = pyqtSignal(int, str)  # line_id, output (IFB/PL)
+    route_audio_signal = pyqtSignal(int, int)  # line_id, output_channel
     
     def __init__(self, sip_engine, audio_router):
         """
@@ -199,9 +199,9 @@ class MainWindow(QMainWindow):
     def _on_audio_toggle_clicked(self, line_id: int):
         """Handle audio routing toggle"""
         line = self.sip_engine.get_line(line_id)
-        new_output = line.toggle_audio_output()
-        logger.info(f"Line {line_id}: Audio toggled to {new_output.value}")
-        self.route_audio_signal.emit(line_id, new_output.value)
+        new_output = line.cycle_audio_output()
+        logger.info(f"Line {line_id}: Audio cycled to Output {new_output.channel}")
+        self.route_audio_signal.emit(line_id, new_output.channel)
     
     def _update_display(self):
         """Update all line displays"""

@@ -38,19 +38,11 @@ class AudioRouter:
         self.sample_rate = self.config.get("sample_rate", 48000)
         self.buffer_size = self.config.get("buffer_size", 256)
         
-        # Output channel mapping
-        self.channels = self.config.get("output_channels", {})
-        self.ifb_channels = [
-            self.channels.get("ifb_left", 0),
-            self.channels.get("ifb_right", 1)
-        ]
-        self.pl_channels = [
-            self.channels.get("pl_left", 2),
-            self.channels.get("pl_right", 3)
-        ]
+        # Number of output channels (up to 8)
+        self.num_outputs = self.config.get("num_outputs", 8)
         
-        # Audio routing map: line_id -> output channels
-        self.routing_map: Dict[int, List[int]] = {}
+        # Audio routing map: line_id -> output channel
+        self.routing_map: Dict[int, int] = {}
         
         # Audio streams for each line
         self.streams: Dict[int, object] = {}
@@ -61,7 +53,7 @@ class AudioRouter:
         self.lock = threading.Lock()
         
         logger.info(f"Audio router initialized: {self.device_name}")
-        logger.info(f"IFB channels: {self.ifb_channels}, PL channels: {self.pl_channels}")
+        logger.info(f"Available outputs: 1-{self.num_outputs}")
     
     def _load_config(self) -> Dict:
         """Load audio configuration from JSON file"""
@@ -93,11 +85,10 @@ class AudioRouter:
             # Verify device has enough output channels
             device_info = sd.query_devices(self.device_index)
             max_outputs = device_info['max_output_channels']
-            required_channels = max(self.ifb_channels + self.pl_channels) + 1
             
-            if max_outputs < required_channels:
-                logger.error(f"Device has {max_outputs} outputs, need {required_channels}")
-                return False
+            if max_outputs < self.num_outputs:
+                logger.warning(f"Device has {max_outputs} outputs, configured for {self.num_outputs}")
+                self.num_outputs = min(self.num_outputs, max_outputs)
             
             self.is_running = True
             logger.info(f"Audio router started on device: {device_info['name']}")
@@ -155,25 +146,25 @@ class AudioRouter:
             return False
         
         with self.lock:
-            # Determine output channels based on line routing
-            if line.audio_output == AudioOutput.IFB:
-                channels = self.ifb_channels
-            else:
-                channels = self.pl_channels
+            # Get output channel from line
+            channel = line.audio_output.channel
             
-            self.routing_map[line.line_id] = channels
+            if channel > self.num_outputs:
+                logger.error(f"Line {line.line_id}: Channel {channel} exceeds available outputs ({self.num_outputs})")
+                return False
             
-            logger.info(f"Line {line.line_id}: Routed to {line.audio_output.value} "
-                       f"(channels {channels})")
+            self.routing_map[line.line_id] = channel
+            
+            logger.info(f"Line {line.line_id}: Routed to Output {channel}")
             return True
     
-    def update_routing(self, line_id: int, output: AudioOutput) -> bool:
+    def update_routing(self, line_id: int, channel: int) -> bool:
         """
         Update audio routing for an active line
         
         Args:
             line_id: Line number (1-8)
-            output: IFB or PL
+            channel: Output channel (1-8)
             
         Returns:
             True if routing updated successfully
@@ -181,19 +172,17 @@ class AudioRouter:
         if not self.is_running:
             return False
         
+        if not 1 <= channel <= self.num_outputs:
+            logger.error(f"Invalid channel {channel}, must be 1-{self.num_outputs}")
+            return False
+        
         with self.lock:
-            # Update routing map
-            if output == AudioOutput.IFB:
-                channels = self.ifb_channels
-            else:
-                channels = self.pl_channels
+            self.routing_map[line_id] = channel
             
-            self.routing_map[line_id] = channels
-            
-            logger.info(f"Line {line_id}: Audio routing updated to {output.value}")
+            logger.info(f"Line {line_id}: Audio routing updated to Output {channel}")
             return True
     
-    def get_routing(self, line_id: int) -> Optional[AudioOutput]:
+    def get_routing(self, line_id: int) -> Optional[int]:
         """
         Get current audio routing for a line
         
@@ -201,14 +190,9 @@ class AudioRouter:
             line_id: Line number
             
         Returns:
-            Current AudioOutput or None
+            Current output channel or None
         """
-        channels = self.routing_map.get(line_id)
-        if channels == self.ifb_channels:
-            return AudioOutput.IFB
-        elif channels == self.pl_channels:
-            return AudioOutput.PL
-        return None
+        return self.routing_map.get(line_id)
     
     def list_audio_devices(self) -> List[Dict]:
         """
@@ -219,7 +203,7 @@ class AudioRouter:
         """
         devices = []
         for idx, device in enumerate(sd.query_devices()):
-            if device['max_output_channels'] >= 4:  # Need at least 4 outputs
+            if device['max_output_channels'] >= 2:  # Need at least stereo
                 devices.append({
                     'index': idx,
                     'name': device['name'],
@@ -228,12 +212,12 @@ class AudioRouter:
                 })
         return devices
     
-    def test_audio(self, output: AudioOutput, duration: float = 1.0) -> bool:
+    def test_audio(self, channel: int, duration: float = 1.0) -> bool:
         """
-        Play test tone on specified output
+        Play test tone on specified output channel
         
         Args:
-            output: IFB or PL output to test
+            channel: Output channel (1-8) to test
             duration: Test tone duration in seconds
             
         Returns:
@@ -243,22 +227,24 @@ class AudioRouter:
             logger.error("Audio router not running")
             return False
         
+        if not 1 <= channel <= self.num_outputs:
+            logger.error(f"Invalid channel {channel}, must be 1-{self.num_outputs}")
+            return False
+        
         try:
             # Generate test tone (1 kHz sine wave)
             t = np.linspace(0, duration, int(self.sample_rate * duration))
             tone = np.sin(2 * np.pi * 1000 * t) * 0.3  # 30% volume
             
             # Create multi-channel output
-            channels = self.ifb_channels if output == AudioOutput.IFB else self.pl_channels
             num_device_channels = sd.query_devices(self.device_index)['max_output_channels']
             audio_data = np.zeros((len(tone), num_device_channels))
             
-            # Assign tone to output channels (stereo)
-            audio_data[:, channels[0]] = tone  # Left
-            audio_data[:, channels[1]] = tone  # Right
+            # Assign tone to selected channel (channel-1 for 0-based index)
+            audio_data[:, channel - 1] = tone
             
             # Play
-            logger.info(f"Playing test tone on {output.value}")
+            logger.info(f"Playing test tone on Output {channel}")
             sd.play(audio_data, self.sample_rate, device=self.device_index)
             sd.wait()
             
@@ -283,7 +269,6 @@ class AudioRouter:
             'device': device_info.get('name', 'Unknown'),
             'device_index': self.device_index,
             'sample_rate': self.sample_rate,
-            'ifb_channels': self.ifb_channels,
-            'pl_channels': self.pl_channels,
+            'num_outputs': self.num_outputs,
             'active_routes': len(self.routing_map)
         }

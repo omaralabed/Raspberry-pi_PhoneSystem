@@ -22,10 +22,29 @@ class LineState(Enum):
     ERROR = "error"
 
 
-class AudioOutput(Enum):
-    """Audio output routing options"""
-    IFB = "IFB"
-    PL = "PL"
+class AudioOutput:
+    """Audio output routing options - flexible channel assignment"""
+    def __init__(self, channel: int):
+        """
+        Initialize audio output
+        
+        Args:
+            channel: Output channel number (1-8)
+        """
+        if not 1 <= channel <= 8:
+            raise ValueError("Channel must be between 1 and 8")
+        self.channel = channel
+    
+    def __str__(self):
+        return f"Out {self.channel}"
+    
+    def __repr__(self):
+        return f"AudioOutput(channel={self.channel})"
+    
+    def __eq__(self, other):
+        if isinstance(other, AudioOutput):
+            return self.channel == other.channel
+        return False
 
 
 class PhoneLine:
@@ -33,18 +52,20 @@ class PhoneLine:
     Manages a single phone line with SIP call control and audio routing
     """
     
-    def __init__(self, line_id: int, sip_account_id: int = None):
+    def __init__(self, line_id: int, sip_account_id: int = None, default_output: int = None):
         """
         Initialize a phone line
         
         Args:
             line_id: Line number (1-8)
             sip_account_id: PJSIP account ID (set after registration)
+            default_output: Default output channel (1-8), defaults to line_id
         """
         self.line_id = line_id
         self.sip_account_id = sip_account_id
         self.state = LineState.IDLE
-        self.audio_output = AudioOutput.IFB  # Default to IFB
+        # Default to same channel as line number (Line 1 -> Output 1, etc.)
+        self.audio_output = AudioOutput(default_output if default_output else line_id)
         
         # Call information
         self.call_id = None
@@ -88,16 +109,34 @@ class PhoneLine:
             if self.on_audio_route_change:
                 self.on_audio_route_change(self.line_id, output)
     
-    def toggle_audio_output(self) -> AudioOutput:
+    def cycle_audio_output(self) -> AudioOutput:
         """
-        Toggle between IFB and PL
+        Cycle to next output channel (1->2->3...->8->1)
         
         Returns:
             New audio output setting
         """
-        new_output = AudioOutput.PL if self.audio_output == AudioOutput.IFB else AudioOutput.IFB
+        next_channel = (self.audio_output.channel % 8) + 1
+        new_output = AudioOutput(next_channel)
         self.set_audio_output(new_output)
         return new_output
+    
+    def set_audio_channel(self, channel: int) -> bool:
+        """
+        Set specific audio output channel
+        
+        Args:
+            channel: Output channel (1-8)
+            
+        Returns:
+            True if successful
+        """
+        try:
+            new_output = AudioOutput(channel)
+            self.set_audio_output(new_output)
+            return True
+        except ValueError:
+            return False
     
     def dial(self, phone_number: str) -> bool:
         """
@@ -197,4 +236,4 @@ class PhoneLine:
     
     def __repr__(self) -> str:
         return (f"PhoneLine(id={self.line_id}, state={self.state.value}, "
-                f"audio={self.audio_output.value}, number={self.remote_number})")
+                f"audio={self.audio_output}, number={self.remote_number})")

@@ -13,7 +13,6 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 from src.sip_engine import SIPEngine
 from src.audio_router import AudioRouter
-from src.phone_line import AudioOutput
 from src.gui.main_window import MainWindow
 
 # Setup logging
@@ -136,18 +135,16 @@ class PhoneSystemApp:
         logger.info(f"Hanging up line {line_id}")
         self.sip_engine.hangup_call(line_id)
     
-    def _on_route_audio(self, line_id: int, output: str):
+    def _on_route_audio(self, line_id: int, channel: int):
         """
         Handle audio routing change
         
         Args:
             line_id: Line number (1-8)
-            output: "IFB" or "PL"
+            channel: Output channel (1-8)
         """
-        logger.info(f"Routing line {line_id} audio to {output}")
-        
-        audio_output = AudioOutput.IFB if output == "IFB" else AudioOutput.PL
-        self.audio_router.update_routing(line_id, audio_output)
+        logger.info(f"Routing line {line_id} audio to Output {channel}")
+        self.audio_router.update_routing(line_id, channel)
     
     def _show_error(self, title: str, message: str):
         """Show error dialog"""

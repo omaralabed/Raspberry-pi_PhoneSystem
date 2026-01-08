@@ -151,8 +151,8 @@ class LineWidget(QWidget):
         # Status text
         self.status_label.setText(self.line.get_status_string())
         
-        # Audio routing
-        self.audio_label.setText(self.line.audio_output.value)
+        # Audio routing - show output channel number
+        self.audio_label.setText(f"Out {self.line.audio_output.channel}")
         
         # Show/hide hangup button
         self.hangup_btn.setVisible(self.line.is_active())
@@ -187,8 +187,7 @@ class LineWidget(QWidget):
             }}
         """)
         
-        # Audio label color
-        if self.line.audio_output == AudioOutput.IFB:
-            self.audio_label.setStyleSheet("color: #4af; font-weight: bold;")
-        else:
-            self.audio_label.setStyleSheet("color: #fa4; font-weight: bold;")
+        # Audio label color - cycle through colors for different outputs
+        colors = ['#4af', '#fa4', '#4f4', '#f4f', '#ff4', '#4ff', '#f44', '#44f']
+        color_idx = (self.line.audio_output.channel - 1) % len(colors)
+        self.audio_label.setStyleSheet(f"color: {colors[color_idx]}; font-weight: bold;")
