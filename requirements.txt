@@ -1,0 +1,30 @@
+# Raspberry Pi Phone System Dependencies
+# Ubuntu 22.04 LTS - Python 3.10+
+
+# SIP/VoIP Stack
+pjsua2==2.13.1
+
+# GUI Framework
+PyQt5==5.15.10
+PyQt5-sip==12.13.0
+
+# Audio Processing
+pyaudio==0.2.14
+pulsectl==23.5.2
+sounddevice==0.4.6
+numpy==1.24.3
+
+# Configuration
+python-dotenv==1.0.0
+
+# Logging
+coloredlogs==15.0.1
+
+# System Integration
+psutil==5.9.6
+python-daemon==3.0.1
+
+# Testing
+pytest==7.4.3
+pytest-qt==4.2.0
+pytest-mock==3.12.0

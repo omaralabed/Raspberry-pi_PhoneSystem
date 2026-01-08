@@ -1,0 +1,26 @@
+[Unit]
+Description=Raspberry Pi Phone System - IFB/PL
+After=network.target sound.target pulseaudio.service
+Wants=pulseaudio.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/Desktop/PhoneSystem
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/home/pi/.Xauthority"
+Environment="PULSE_SERVER=unix:/run/user/1000/pulse/native"
+ExecStart=/usr/bin/python3 /home/pi/Desktop/PhoneSystem/main.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:/home/pi/Desktop/PhoneSystem/logs/systemd.log
+StandardError=append:/home/pi/Desktop/PhoneSystem/logs/systemd.log
+
+# Resource limits
+LimitRTPRIO=95
+LimitMEMLOCK=infinity
+Nice=-10
+
+[Install]
+WantedBy=graphical.target
