@@ -17,11 +17,35 @@ This guide provides step-by-step instructions for setting up the phone system on
 **Required Peripherals:**
 - Official Raspberry Pi 7" Touchscreen Display OR
 - Any HDMI touchscreen (800x480 or higher)
-- USB Audio Interface with 4+ outputs (e.g., Behringer UMC404HD)
+- **USB Audio Interface with 8 outputs** (see recommendations below)
 - MicroSD Card (32GB+, Class 10)
 - Ethernet cable (recommended for SIP reliability)
 
-### 2. Ubuntu Installation
+### 2. Audio Interface Recommendations
+
+**Desktop Units (Top-Panel Connectors):**
+
+**RECOMMENDED: MOTU UltraLite-mk5** (~$595)
+- USB-C (USB 3.0) connection
+- 8 analog outputs on top/front panel
+- Compact desktop design
+- Ultra-low latency (<2ms)
+- Excellent Linux/ALSA support
+- Bus-powered (no external power needed)
+- LCD screen and volume controls on top
+
+**Alternative Options:**
+- **Audient iD44** (~$599) - USB-C, desktop unit with top controls
+- **PreSonus Studio 1824c** (~$499) - USB-C, rack-mountable but can sit on desk
+- **2x Behringer UMC404HD** (~$200 total) - Budget option, USB 2.0, 4 outputs each
+
+**What You Need:**
+- Audio interface with **8 line outputs** (TRS balanced)
+- **USB 3.0/USB-C** connection for best performance
+- **Linux/ALSA compatible** (all recommended units are tested)
+- **Desktop form factor** with top-accessible controls and connectors
+
+### 3. Ubuntu Installation
 
 1. Download Ubuntu 22.04 LTS for Raspberry Pi:
    ```bash
