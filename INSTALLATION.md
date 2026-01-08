@@ -27,26 +27,26 @@ This guide provides step-by-step instructions for setting up the phone system on
 
 **Desktop Units (Top-Panel Connectors):**
 
-1. **MOTU UltraLite-mk5** (~$595)
+1. **MOTU UltraLite-mk5**
    - USB-C (USB 3.0), 8 outputs on top panel, ultra-low latency, excellent Linux support
 
-2. **Audient iD44** (~$599)
+2. **Audient iD44**
    - USB-C (USB 3.0), desktop unit with top controls, 8 outputs
 
 **Rack-Mount Units (Can sit on desk):**
 
-3. **PreSonus Studio 1824c** (~$499)
+3. **PreSonus Studio 1824c**
    - USB-C (USB 3.0), 8 line outputs, great Linux/ALSA support
 
-4. **Behringer UMC1820** (~$299)
+4. **Behringer UMC1820**
    - USB 2.0, 8 line outputs, affordable, rack-mountable
 
-5. **Focusrite Scarlett 18i20** (~$599)
+5. **Focusrite Scarlett 18i20**
    - USB 2.0, 8 line outputs, industry standard, excellent reliability
 
 **Budget Option:**
 
-6. **2x Behringer UMC404HD** (~$100 each = $200 total)
+6. **2x Behringer UMC404HD**
    - USB 2.0, 4 outputs each = 8 total, desktop units
 
 **Any other USB audio interface with 8 outputs will work!**
