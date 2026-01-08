@@ -5,7 +5,7 @@ Main Window - TouchScreen GUI
 
 import sys
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                             QGridLayout, QPushButton, QLabel, QFrame)
+                             QGridLayout, QPushButton, QLabel, QFrame, QMessageBox)
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QPalette, QColor
 import logging
@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
             widget = LineWidget(line, self)
             widget.clicked.connect(self._on_line_selected)
             widget.hangup_clicked.connect(self._on_hangup_clicked)
-            widget.audio_toggle_clicked.connect(self._on_audio_toggle_clicked)
+            widget.audio_channel_changed.connect(self._on_audio_channel_changed)
             
             row = 1 + (i // 2)
             col = i % 2
@@ -196,12 +196,72 @@ class MainWindow(QMainWindow):
         logger.info(f"Hanging up line {line_id}")
         self.hangup_signal.emit(line_id)
     
-    def _on_audio_toggle_clicked(self, line_id: int):
-        """Handle audio routing toggle"""
-        line = self.sip_engine.get_line(line_id)
-        new_output = line.cycle_audio_output()
-        logger.info(f"Line {line_id}: Audio cycled to Output {new_output.channel}")
-        self.route_audio_signal.emit(line_id, new_output.channel)
+    def _on_audio_channel_changed(self, line_id: int, new_channel: int):
+        """Handle audio channel selection change"""
+        # Check if another line is already using this channel
+        conflicting_line = None
+        for i in range(1, 9):
+            if i != line_id:
+                line = self.sip_engine.get_line(i)
+                if line.audio_output.channel == new_channel:
+                    conflicting_line = i
+                    break
+        
+        if conflicting_line:
+            # Show warning dialog
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Channel In Use")
+            msg.setText(f"Output Channel {new_channel} is already in use by Line {conflicting_line}.")
+            msg.setInformativeText("Do you want to use this channel anyway?")
+            msg.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+            msg.setDefaultButton(QMessageBox.Cancel)
+            
+            # Style the message box to match dark theme
+            msg.setStyleSheet("""
+                QMessageBox {
+                    background-color: #2a2a2a;
+                    color: #ddd;
+                }
+                QMessageBox QLabel {
+                    color: #ddd;
+                }
+                QPushButton {
+                    background-color: #505050;
+                    color: white;
+                    border: 1px solid #666;
+                    border-radius: 3px;
+                    padding: 5px 15px;
+                    min-width: 60px;
+                }
+                QPushButton:hover {
+                    background-color: #606060;
+                }
+                QPushButton:pressed {
+                    background-color: #404040;
+                }
+            """)
+            
+            result = msg.exec_()
+            
+            if result == QMessageBox.Yes:
+                # User confirmed - proceed with channel change
+                line = self.sip_engine.get_line(line_id)
+                line.set_audio_channel(new_channel)
+                logger.info(f"Line {line_id}: Channel changed to {new_channel} (confirmed)")
+                self.route_audio_signal.emit(line_id, new_channel)
+                self._update_display()
+            else:
+                # User cancelled - revert to previous channel
+                logger.info(f"Line {line_id}: Channel change to {new_channel} cancelled")
+                self._update_display()  # This will reset the picker to current channel
+        else:
+            # No conflict - proceed with channel change
+            line = self.sip_engine.get_line(line_id)
+            line.set_audio_channel(new_channel)
+            logger.info(f"Line {line_id}: Channel changed to {new_channel}")
+            self.route_audio_signal.emit(line_id, new_channel)
+            self._update_display()
     
     def _update_display(self):
         """Update all line displays"""

@@ -4,7 +4,7 @@ Line Widget - Individual Phone Line Status Display
 """
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-                             QLabel, QFrame)
+                             QLabel, QFrame, QComboBox, QMessageBox)
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 import logging
@@ -22,7 +22,7 @@ class LineWidget(QWidget):
     # Signals
     clicked = pyqtSignal(int)  # line_id
     hangup_clicked = pyqtSignal(int)  # line_id
-    audio_toggle_clicked = pyqtSignal(int)  # line_id
+    audio_channel_changed = pyqtSignal(int, int)  # line_id, channel
     
     def __init__(self, line: PhoneLine, parent=None):
         """
@@ -86,22 +86,38 @@ class LineWidget(QWidget):
         button_row = QHBoxLayout()
         button_row.setSpacing(5)
         
-        # Audio toggle button
-        self.audio_btn = QPushButton("🔊")
-        self.audio_btn.setMaximumWidth(40)
-        self.audio_btn.setToolTip("Toggle IFB/PL")
-        self.audio_btn.clicked.connect(self._on_audio_toggle)
-        self.audio_btn.setStyleSheet("""
-            QPushButton {
+        # Audio channel picker
+        self.channel_picker = QComboBox()
+        self.channel_picker.setMaximumWidth(70)
+        self.channel_picker.setMinimumWidth(70)
+        for i in range(1, 9):
+            self.channel_picker.addItem(f"🔊 {i}", i)
+        self.channel_picker.setCurrentIndex(0)
+        self.channel_picker.currentIndexChanged.connect(self._on_channel_changed)
+        self.channel_picker.setStyleSheet("""
+            QComboBox {
                 background-color: #505050;
                 border: 1px solid #666;
                 border-radius: 3px;
+                padding: 2px 5px;
+                color: white;
+                font-size: 11px;
+                font-weight: bold;
             }
-            QPushButton:pressed {
-                background-color: #2a5a8a;
+            QComboBox:hover {
+                background-color: #606060;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #404040;
+                color: white;
+                selection-background-color: #2a5a8a;
+                border: 1px solid #666;
             }
         """)
-        button_row.addWidget(self.audio_btn)
+        button_row.addWidget(self.channel_picker)
         
         button_row.addStretch()
         
@@ -137,9 +153,12 @@ class LineWidget(QWidget):
         """Handle hangup button click"""
         self.hangup_clicked.emit(self.line.line_id)
     
-    def _on_audio_toggle(self):
-        """Handle audio toggle button click"""
-        self.audio_toggle_clicked.emit(self.line.line_id)
+    def _on_channel_changed(self, index):
+        """Handle channel selection change"""
+        if index >= 0:
+            channel = self.channel_picker.itemData(index)
+            if channel != self.line.audio_output.channel:
+                self.audio_channel_changed.emit(self.line.line_id, channel)
     
     def set_selected(self, selected: bool):
         """Set selection highlight"""
@@ -153,6 +172,12 @@ class LineWidget(QWidget):
         
         # Audio routing - show output channel number
         self.audio_label.setText(f"Out {self.line.audio_output.channel}")
+        
+        # Update channel picker to match current channel
+        current_channel = self.line.audio_output.channel
+        self.channel_picker.blockSignals(True)
+        self.channel_picker.setCurrentIndex(current_channel - 1)
+        self.channel_picker.blockSignals(False)
         
         # Show/hide hangup button
         self.hangup_btn.setVisible(self.line.is_active())
