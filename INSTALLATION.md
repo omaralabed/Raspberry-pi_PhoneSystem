@@ -23,27 +23,44 @@ This guide provides step-by-step instructions for setting up the phone system on
 
 ### 2. Audio Interface Recommendations
 
+**You need a USB audio interface with 8 outputs. The software is flexible and works with any of these:**
+
 **Desktop Units (Top-Panel Connectors):**
 
-**RECOMMENDED: MOTU UltraLite-mk5** (~$595)
-- USB-C (USB 3.0) connection
-- 8 analog outputs on top/front panel
-- Compact desktop design
-- Ultra-low latency (<2ms)
-- Excellent Linux/ALSA support
-- Bus-powered (no external power needed)
-- LCD screen and volume controls on top
+1. **MOTU UltraLite-mk5** (~$595)
+   - USB-C (USB 3.0), 8 outputs on top panel, ultra-low latency, excellent Linux support
 
-**Alternative Options:**
-- **Audient iD44** (~$599) - USB-C, desktop unit with top controls
-- **PreSonus Studio 1824c** (~$499) - USB-C, rack-mountable but can sit on desk
-- **2x Behringer UMC404HD** (~$200 total) - Budget option, USB 2.0, 4 outputs each
+2. **Audient iD44** (~$599)
+   - USB-C (USB 3.0), desktop unit with top controls, 8 outputs
 
-**What You Need:**
-- Audio interface with **8 line outputs** (TRS balanced)
-- **USB 3.0/USB-C** connection for best performance
-- **Linux/ALSA compatible** (all recommended units are tested)
-- **Desktop form factor** with top-accessible controls and connectors
+**Rack-Mount Units (Can sit on desk):**
+
+3. **PreSonus Studio 1824c** (~$499)
+   - USB-C (USB 3.0), 8 line outputs, great Linux/ALSA support
+
+4. **Behringer UMC1820** (~$299)
+   - USB 2.0, 8 line outputs, affordable, rack-mountable
+
+5. **Focusrite Scarlett 18i20** (~$599)
+   - USB 2.0, 8 line outputs, industry standard, excellent reliability
+
+**Budget Option:**
+
+6. **2x Behringer UMC404HD** (~$100 each = $200 total)
+   - USB 2.0, 4 outputs each = 8 total, desktop units
+
+**Any other USB audio interface with 8 outputs will work!**
+
+**Configuration:**
+Once you choose your interface, simply update `config/audio_config.json`:
+```json
+{
+  "audio_device_name": "Your Audio Interface Name",
+  "num_outputs": 8
+}
+```
+
+The system will automatically detect and use your interface.
 
 ### 3. Ubuntu Installation
 
