@@ -192,17 +192,17 @@ class LineWidget(QWidget):
         self.hangup_btn.setFont(QFont("Segoe UI", 12, QFont.Bold))
         self.hangup_btn.setMinimumHeight(50)
         self.hangup_btn.setMinimumWidth(130)
-        self.hangup_btn.setVisible(False)
+        self.hangup_btn.setVisible(True)  # Always visible for testing
         self.hangup_btn.clicked.connect(self._on_hangup)
         self.hangup_btn.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #ff6b6b,
-                    stop:1 #ee5a6f
+                    stop:0 #ff9f1a,
+                    stop:1 #ff6b35
                 );
                 color: white;
-                border: none;
+                border: 3px solid white;
                 border-radius: 8px;
                 padding: 10px 20px;
                 font-weight: bold;
@@ -211,13 +211,13 @@ class LineWidget(QWidget):
             QPushButton:hover {
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #ff5252,
-                    stop:1 #dd4a5f
+                    stop:0 #ffb84d,
+                    stop:1 #ff8555
                 );
-                border: 2px solid rgba(255, 255, 255, 0.3);
+                border: 3px solid #00d4ff;
             }
             QPushButton:pressed {
-                background: #cc3e3e;
+                background: #cc6600;
                 padding: 11px 19px 9px 21px;
             }
         """)
