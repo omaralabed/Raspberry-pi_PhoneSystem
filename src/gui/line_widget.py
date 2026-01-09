@@ -133,7 +133,7 @@ class LineWidget(QWidget):
         self.channel_picker.setMaximumWidth(125)
         self.channel_picker.setMinimumWidth(125)
         self.channel_picker.setMinimumHeight(40)
-        self.channel_picker.addItem("🔇 None", 0)  # No output with icon
+        self.channel_picker.addItem("🔇 None ▼", 0)  # No output with icon and down arrow
         for i in range(1, 9):
             self.channel_picker.addItem(f"🔊 {i}", i)
         self.channel_picker.setCurrentIndex(1)  # Default to channel 1
@@ -162,17 +162,15 @@ class LineWidget(QWidget):
                 border: 2px solid rgba(0, 212, 255, 0.5);
             }
             QComboBox::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: center right;
+                width: 0px;
                 border: none;
-                width: 30px;
             }
             QComboBox::down-arrow {
                 image: none;
                 width: 0px;
                 height: 0px;
-                border-left: 7px solid transparent;
-                border-right: 7px solid transparent;
-                border-top: 10px solid white;
-                margin-right: 8px;
             }
             QComboBox QAbstractItemView {
                 background-color: #2d3748;
