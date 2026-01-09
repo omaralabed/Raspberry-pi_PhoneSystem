@@ -44,8 +44,8 @@ class LineWidget(QWidget):
     
     def _create_ui(self):
         """Create line widget UI"""
-        self.setMinimumHeight(110)
-        self.setMaximumHeight(140)
+        self.setMinimumHeight(130)
+        self.setMaximumHeight(160)
         
         # Main frame with modern styling
         self.frame = QFrame(self)
@@ -74,8 +74,8 @@ class LineWidget(QWidget):
         layout.addWidget(self.frame)
         
         frame_layout = QVBoxLayout(self.frame)
-        frame_layout.setContentsMargins(12, 12, 12, 12)
-        frame_layout.setSpacing(8)
+        frame_layout.setContentsMargins(15, 15, 15, 15)
+        frame_layout.setSpacing(12)
         
         # Top row: Line number and audio label
         top_row = QHBoxLayout()
@@ -114,8 +114,8 @@ class LineWidget(QWidget):
         self.status_label.setStyleSheet("""
             QLabel {
                 color: #95e1d3;
-                padding: 4px 0px 6px 0px;
-                min-height: 20px;
+                padding: 6px 0px 8px 0px;
+                min-height: 25px;
             }
         """)
         frame_layout.addWidget(self.status_label)
