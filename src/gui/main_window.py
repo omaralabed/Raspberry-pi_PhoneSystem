@@ -45,7 +45,8 @@ class MainWindow(QMainWindow):
         
         # UI Setup
         self.setWindowTitle("Phone System - IFB/PL")
-        self.setGeometry(0, 0, 800, 480)  # 7" touchscreen resolution
+        # Use available screen size instead of hardcoded resolution
+        # self.setGeometry(0, 0, 800, 480)  # Old: 7" touchscreen resolution
         
         # Apply dark theme
         self._apply_theme()
