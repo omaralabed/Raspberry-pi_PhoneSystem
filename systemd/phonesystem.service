@@ -1,8 +1,7 @@
 [Unit]
 Description=Raspberry Pi Phone System - IFB/PL
 After=network.target sound.target systemd-user-sessions.service
-Requires=dev-fb0.device
-After=dev-fb0.device
+After=local-fs.target
 
 [Service]
 Type=simple
