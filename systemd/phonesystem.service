@@ -8,6 +8,7 @@ Type=simple
 User=procomm
 Group=procomm
 WorkingDirectory=/home/procomm/ProComm
+Environment="QT_QPA_PLATFORM=linuxfb"
 Environment="DISPLAY=:0"
 Environment="XAUTHORITY=/home/procomm/.Xauthority"
 Environment="PULSE_SERVER=unix:/run/user/1000/pulse/native"
