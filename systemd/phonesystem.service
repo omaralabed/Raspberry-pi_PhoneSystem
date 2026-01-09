@@ -1,16 +1,18 @@
 [Unit]
 Description=Raspberry Pi Phone System - IFB/PL
-After=network.target sound.target
-DefaultDependencies=no
+After=network.target sound.target systemd-user-sessions.service
+Requires=dev-fb0.device
+After=dev-fb0.device
 
 [Service]
 Type=simple
 User=procomm
 Group=procomm
 WorkingDirectory=/home/procomm/ProComm
-Environment="QT_QPA_PLATFORM=linuxfb"
-Environment="QT_QPA_FB_DRM=1"
-Environment="QT_QPA_EGLFS_ALWAYS_SET_MODE=1"
+Environment="QT_QPA_PLATFORM=linuxfb:/dev/fb0"
+Environment="QT_QPA_FB_FORCE_FULLSCREEN=1"
+Environment="QT_QPA_FONTDIR=/usr/share/fonts"
+Environment="QT_LOGGING_RULES=qt.qpa.*=false"
 ExecStart=/usr/bin/python3 /home/procomm/ProComm/main.py
 Restart=always
 RestartSec=5
