@@ -44,8 +44,8 @@ class LineWidget(QWidget):
     
     def _create_ui(self):
         """Create line widget UI"""
-        self.setMinimumHeight(160)
-        self.setMaximumHeight(200)
+        self.setMinimumHeight(210)
+        self.setMaximumHeight(250)
         
         # Main frame with modern styling
         self.frame = QFrame(self)
@@ -74,8 +74,8 @@ class LineWidget(QWidget):
         layout.addWidget(self.frame)
         
         frame_layout = QVBoxLayout(self.frame)
-        frame_layout.setContentsMargins(15, 15, 15, 15)
-        frame_layout.setSpacing(12)
+        frame_layout.setContentsMargins(10, 10, 10, 10)
+        frame_layout.setSpacing(8)
         
         # Top row: Line number and audio label
         top_row = QHBoxLayout()
@@ -127,8 +127,9 @@ class LineWidget(QWidget):
         # Hangup button row - full width orange button
         hangup_row = QHBoxLayout()
         self.hangup_btn = QPushButton("📞 HANG UP")
-        self.hangup_btn.setFont(QFont("Segoe UI", 12, QFont.Bold))
-        self.hangup_btn.setMinimumHeight(45)
+        self.hangup_btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        self.hangup_btn.setMinimumHeight(35)
+        self.hangup_btn.setMaximumHeight(40)
         self.hangup_btn.setVisible(True)  # Always visible for testing
         self.hangup_btn.clicked.connect(self._on_hangup)
         self.hangup_btn.setStyleSheet("""
