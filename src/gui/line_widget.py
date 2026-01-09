@@ -79,13 +79,13 @@ class LineWidget(QWidget):
         
         # Top row: Line number and audio label
         top_row = QHBoxLayout()
+        top_row.setSpacing(10)
         
-        self.line_label = QLabel(f"LINE {self.line.line_id}")
-        self.line_label.setFont(QFont("Segoe UI", 13, QFont.Bold))
+        self.line_label = QLabel(f"Line {self.line.line_id}")
+        self.line_label.setFont(QFont("Segoe UI", 14, QFont.Bold))
         self.line_label.setStyleSheet("""
             QLabel {
                 color: #00d4ff;
-                letter-spacing: 1px;
             }
         """)
         top_row.addWidget(self.line_label)
@@ -93,14 +93,16 @@ class LineWidget(QWidget):
         top_row.addStretch()
         
         self.audio_label = QLabel("IFB")
-        self.audio_label.setFont(QFont("Segoe UI", 10, QFont.Bold))
-        self.audio_label.setAlignment(Qt.AlignRight)
+        self.audio_label.setFont(QFont("Segoe UI", 9, QFont.Bold))
+        self.audio_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.audio_label.setStyleSheet("""
             QLabel {
                 color: #4ecdc4;
                 background: rgba(78, 205, 196, 0.2);
-                padding: 4px 8px;
+                padding: 5px 10px;
                 border-radius: 5px;
+                min-width: 80px;
+                max-width: 100px;
             }
         """)
         top_row.addWidget(self.audio_label)
@@ -247,7 +249,7 @@ class LineWidget(QWidget):
         
         # Audio routing - show output channel number or "No Output"
         if self.line.audio_output.channel == 0:
-            self.audio_label.setText("No Output")
+            self.audio_label.setText("None")
         else:
             self.audio_label.setText(f"Out {self.line.audio_output.channel}")
         
@@ -333,10 +335,12 @@ class LineWidget(QWidget):
         if self.line.audio_output.channel == 0:
             self.audio_label.setStyleSheet("""
                 QLabel {
-                    color: #888;
-                    background: rgba(136, 136, 136, 0.2);
-                    padding: 4px 8px;
+                    color: #999;
+                    background: rgba(136, 136, 136, 0.15);
+                    padding: 5px 10px;
                     border-radius: 5px;
+                    min-width: 80px;
+                    max-width: 100px;
                 }
             """)
         else:
@@ -355,8 +359,10 @@ class LineWidget(QWidget):
                 QLabel {{
                     color: {color};
                     background: rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.25);
-                    padding: 4px 8px;
+                    padding: 5px 10px;
                     border-radius: 5px;
                     font-weight: bold;
+                    min-width: 80px;
+                    max-width: 100px;
                 }}
             """)
