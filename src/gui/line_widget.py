@@ -44,8 +44,8 @@ class LineWidget(QWidget):
     
     def _create_ui(self):
         """Create line widget UI"""
-        self.setMinimumHeight(210)
-        self.setMaximumHeight(250)
+        self.setMinimumHeight(170)
+        self.setMaximumHeight(200)
         
         # Main frame with modern styling
         self.frame = QFrame(self)
@@ -124,47 +124,9 @@ class LineWidget(QWidget):
         """)
         frame_layout.addWidget(self.status_label)
         
-        # Hangup button row - full width orange button
-        hangup_row = QHBoxLayout()
-        self.hangup_btn = QPushButton("📞 HANG UP")
-        self.hangup_btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
-        self.hangup_btn.setMinimumHeight(35)
-        self.hangup_btn.setMaximumHeight(40)
-        self.hangup_btn.setVisible(True)  # Always visible for testing
-        self.hangup_btn.clicked.connect(self._on_hangup)
-        self.hangup_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #ff9f1a,
-                    stop:1 #ff6b35
-                );
-                color: white;
-                border: 3px solid white;
-                border-radius: 8px;
-                padding: 10px 20px;
-                font-weight: bold;
-                letter-spacing: 2px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #ffb84d,
-                    stop:1 #ff8555
-                );
-                border: 3px solid #00d4ff;
-            }
-            QPushButton:pressed {
-                background: #cc6600;
-                padding: 11px 19px 9px 21px;
-            }
-        """)
-        hangup_row.addWidget(self.hangup_btn)
-        frame_layout.addLayout(hangup_row)
-        
-        # Button row - channel picker
+        # Button row - channel picker and hangup button side by side
         button_row = QHBoxLayout()
-        button_row.setSpacing(8)
+        button_row.setSpacing(15)  # Safe distance between buttons
         
         # Audio channel picker with modern styling
         self.channel_picker = QComboBox()
@@ -222,6 +184,44 @@ class LineWidget(QWidget):
             }
         """)
         button_row.addWidget(self.channel_picker)
+        
+        # Hangup button next to picker with safe spacing
+        self.hangup_btn = QPushButton("📞 HANG UP")
+        self.hangup_btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        self.hangup_btn.setMinimumHeight(40)
+        self.hangup_btn.setMaximumHeight(40)
+        self.hangup_btn.setMinimumWidth(110)
+        self.hangup_btn.setMaximumWidth(130)
+        self.hangup_btn.setVisible(True)  # Always visible
+        self.hangup_btn.clicked.connect(self._on_hangup)
+        self.hangup_btn.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #ff9f1a,
+                    stop:1 #ff6b35
+                );
+                color: white;
+                border: 3px solid white;
+                border-radius: 8px;
+                padding: 8px 15px;
+                font-weight: bold;
+                letter-spacing: 1px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #ffb84d,
+                    stop:1 #ff8555
+                );
+                border: 3px solid #00d4ff;
+            }
+            QPushButton:pressed {
+                background: #cc6600;
+                padding: 9px 14px 7px 16px;
+            }
+        """)
+        button_row.addWidget(self.hangup_btn)
         
         frame_layout.addLayout(button_row)
         
