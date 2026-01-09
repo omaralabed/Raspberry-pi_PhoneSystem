@@ -103,8 +103,8 @@ class LineWidget(QWidget):
                 background: rgba(78, 205, 196, 0.2);
                 padding: 5px 10px;
                 border-radius: 5px;
-                min-width: 70px;
-                max-width: 90px;
+                min-width: 85px;
+                max-width: 100px;
             }
         """)
         top_row.addWidget(self.audio_label)
@@ -251,7 +251,7 @@ class LineWidget(QWidget):
         
         # Audio routing - show output channel number or "No Output"
         if self.line.audio_output.channel == 0:
-            self.audio_label.setText("None")
+            self.audio_label.setText("No Output")
         else:
             self.audio_label.setText(f"Out {self.line.audio_output.channel}")
         
@@ -341,8 +341,8 @@ class LineWidget(QWidget):
                     background: rgba(136, 136, 136, 0.15);
                     padding: 5px 10px;
                     border-radius: 5px;
-                    min-width: 70px;
-                    max-width: 90px;
+                    min-width: 85px;
+                    max-width: 100px;
                 }
             """)
         else:
@@ -364,7 +364,7 @@ class LineWidget(QWidget):
                     padding: 5px 10px;
                     border-radius: 5px;
                     font-weight: bold;
-                    min-width: 70px;
-                    max-width: 90px;
+                    min-width: 85px;
+                    max-width: 100px;
                 }}
             """)
