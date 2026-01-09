@@ -28,6 +28,8 @@ class AudioWidget(QWidget):
         super().__init__(parent)
         
         self.audio_router = audio_router
+        self.available_label = None  # Label showing available lines
+        self.output_labels = []  # Store label references for updates
         self._create_ui()
         
         logger.info("Audio widget initialized")
@@ -67,13 +69,23 @@ class AudioWidget(QWidget):
         channels_title.setStyleSheet("color: white;")
         channels_layout.addWidget(channels_title)
         
-        # Show outputs 1-8
+        # Show available lines (not assigned to any output)
+        self.available_label = QLabel("Lines: (checking...)")
+        self.available_label.setFont(QFont("Arial", 9))
+        self.available_label.setAlignment(Qt.AlignLeft)
+        self.available_label.setStyleSheet("color: #4ecdc4; padding: 3px;")
+        self.available_label.setWordWrap(True)
+        channels_layout.addWidget(self.available_label)
+        
+        # Show outputs 1-8 with assigned lines
+        self.output_labels = []
         for i in range(1, 9):
-            output_label = QLabel(f"Output {i}")
+            output_label = QLabel(f"Output {i} - (none)")
             output_label.setFont(QFont("Arial", 8))
             colors = ['#4af', '#fa4', '#4f4', '#f4f', '#ff4', '#4ff', '#f44', '#44f']
             output_label.setStyleSheet(f"color: {colors[i-1]};")
             channels_layout.addWidget(output_label)
+            self.output_labels.append(output_label)
         
         group_layout.addWidget(channels_frame)
         
@@ -132,3 +144,40 @@ class AudioWidget(QWidget):
         channel = self.channel_spinbox.value()
         logger.info(f"Testing output channel {channel}")
         self.audio_router.test_audio(channel, duration=1.0)
+    
+    def update_routing_display(self, lines):
+        """
+        Update the routing display with current line assignments
+        
+        Args:
+            lines: List of PhoneLine objects (lines 1-8)
+        """
+        # Build mapping of output -> line
+        output_to_line = {}
+        available_lines = []
+        
+        for line in lines:
+            channel = line.audio_output.channel
+            if channel == 0:
+                # Line not assigned to any output
+                available_lines.append(line.line_id)
+            else:
+                # Line assigned to this output
+                output_to_line[channel] = line.line_id
+        
+        # Update available lines label
+        if available_lines:
+            lines_str = ", ".join([f"Line {lid}" for lid in available_lines])
+            self.available_label.setText(f"Lines: [{lines_str}]")
+        else:
+            self.available_label.setText("Lines: (all assigned)")
+        
+        # Update output labels
+        colors = ['#4af', '#fa4', '#4f4', '#f4f', '#ff4', '#4ff', '#f44', '#44f']
+        for i in range(1, 9):
+            if i in output_to_line:
+                line_id = output_to_line[i]
+                self.output_labels[i-1].setText(f"Output {i} - Line {line_id}")
+            else:
+                self.output_labels[i-1].setText(f"Output {i} - (none)")
+            self.output_labels[i-1].setStyleSheet(f"color: {colors[i-1]};")

@@ -311,6 +311,10 @@ class MainWindow(QMainWindow):
         """Update all line displays"""
         for widget in self.line_widgets:
             widget.update_display()
+        
+        # Update audio routing display
+        lines = [self.sip_engine.get_line(i) for i in range(1, 9)]
+        self.audio_widget.update_routing_display(lines)
     
     def closeEvent(self, event):
         """Handle window close"""
