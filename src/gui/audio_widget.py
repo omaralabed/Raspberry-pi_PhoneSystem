@@ -71,19 +71,24 @@ class AudioWidget(QWidget):
         
         # Show available lines (not assigned to any output)
         self.available_label = QLabel("Lines: (checking...)")
-        self.available_label.setFont(QFont("Arial", 9))
+        self.available_label.setFont(QFont("Arial", 8))
         self.available_label.setAlignment(Qt.AlignLeft)
-        self.available_label.setStyleSheet("color: #4ecdc4; padding: 3px;")
+        self.available_label.setStyleSheet("color: #4ecdc4; padding: 5px; background-color: rgba(78, 205, 196, 0.1); border-radius: 4px;")
         self.available_label.setWordWrap(True)
         channels_layout.addWidget(self.available_label)
+        
+        # Separator
+        separator = QLabel("")
+        separator.setStyleSheet("border-bottom: 1px solid #555; margin: 5px 0px;")
+        channels_layout.addWidget(separator)
         
         # Show outputs 1-8 with assigned lines
         self.output_labels = []
         for i in range(1, 9):
             output_label = QLabel(f"Output {i} - (none)")
-            output_label.setFont(QFont("Arial", 8))
+            output_label.setFont(QFont("Arial", 9))
             colors = ['#4af', '#fa4', '#4f4', '#f4f', '#ff4', '#4ff', '#f44', '#44f']
-            output_label.setStyleSheet(f"color: {colors[i-1]};")
+            output_label.setStyleSheet(f"color: {colors[i-1]}; padding: 2px;")
             channels_layout.addWidget(output_label)
             self.output_labels.append(output_label)
         
@@ -167,17 +172,17 @@ class AudioWidget(QWidget):
         
         # Update available lines label
         if available_lines:
-            lines_str = ", ".join([f"Line {lid}" for lid in available_lines])
-            self.available_label.setText(f"Lines: [{lines_str}]")
+            lines_str = ", ".join([f"L{lid}" for lid in available_lines])
+            self.available_label.setText(f"Unassigned: {lines_str}")
         else:
-            self.available_label.setText("Lines: (all assigned)")
+            self.available_label.setText("Unassigned: (none - all assigned)")
         
         # Update output labels
         colors = ['#4af', '#fa4', '#4f4', '#f4f', '#ff4', '#4ff', '#f44', '#44f']
         for i in range(1, 9):
             if i in output_to_line:
                 line_id = output_to_line[i]
-                self.output_labels[i-1].setText(f"Output {i} - Line {line_id}")
+                self.output_labels[i-1].setText(f"Output {i} → Line {line_id}")
             else:
-                self.output_labels[i-1].setText(f"Output {i} - (none)")
-            self.output_labels[i-1].setStyleSheet(f"color: {colors[i-1]};")
+                self.output_labels[i-1].setText(f"Output {i} → (none)")
+            self.output_labels[i-1].setStyleSheet(f"color: {colors[i-1]}; padding: 2px;")
