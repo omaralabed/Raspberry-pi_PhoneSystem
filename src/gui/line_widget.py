@@ -163,14 +163,16 @@ class LineWidget(QWidget):
             }
             QComboBox::drop-down {
                 border: none;
-                width: 25px;
+                width: 30px;
             }
             QComboBox::down-arrow {
                 image: none;
-                border-left: 6px solid transparent;
-                border-right: 6px solid transparent;
-                border-top: 6px solid white;
-                margin-right: 5px;
+                width: 0px;
+                height: 0px;
+                border-left: 7px solid transparent;
+                border-right: 7px solid transparent;
+                border-top: 10px solid white;
+                margin-right: 8px;
             }
             QComboBox QAbstractItemView {
                 background-color: #2d3748;
