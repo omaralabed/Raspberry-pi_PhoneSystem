@@ -133,8 +133,8 @@ class LineWidget(QWidget):
         self.channel_picker.setMaximumWidth(125)
         self.channel_picker.setMinimumWidth(125)
         self.channel_picker.setMinimumHeight(40)
-        self.channel_picker.addItem("🔇 None", 0)  # No output with icon
-        for i in range(1, 9):
+        self.channel_picker.addItem("🔇 No Output Selected", 0)  # No output with icon
+        for i in range(1, 9):  # Outputs 1-8
             self.channel_picker.addItem(f"🔊 {i}", i)
         self.channel_picker.setCurrentIndex(1)  # Default to channel 1
         self.channel_picker.currentIndexChanged.connect(self._on_channel_changed)
