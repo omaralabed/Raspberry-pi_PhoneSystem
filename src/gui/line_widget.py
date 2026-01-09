@@ -269,8 +269,8 @@ class LineWidget(QWidget):
                 break
         self.channel_picker.blockSignals(False)
         
-        # Show/hide hangup button
-        self.hangup_btn.setVisible(self.line.is_active())
+        # Show/hide hangup button - DISABLED: keep always visible
+        # self.hangup_btn.setVisible(self.line.is_active())
         
         # Update colors
         self._update_style()
