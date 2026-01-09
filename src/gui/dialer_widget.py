@@ -4,10 +4,12 @@ Dialer Widget - Touchscreen Number Pad
 """
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-                             QPushButton, QLineEdit, QLabel)
+                             QPushButton, QLineEdit, QLabel, QMenu)
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 import logging
+import json
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,10 @@ class DialerWidget(QWidget):
         super().__init__(parent)
         
         self.phone_number = ""
+        self.recent_numbers = []  # List of recent numbers
+        self.max_recents = 20  # Keep last 20 numbers
+        self.recents_file = os.path.expanduser("~/.phonesystem_recents.json")
+        self._load_recents()
         self._create_ui()
         
         logger.info("Dialer widget initialized")
@@ -141,6 +147,42 @@ class DialerWidget(QWidget):
         self.clear_btn.clicked.connect(self._on_clear)
         action_layout.addWidget(self.clear_btn)
         
+        # Recents button
+        self.recents_btn = QPushButton("📋 Recents")
+        self.recents_btn.setMinimumHeight(55)
+        self.recents_btn.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        self.recents_btn.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #667eea,
+                    stop:1 #764ba2
+                );
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #7c8ef5,
+                    stop:1 #8c5fb5
+                );
+            }
+            QPushButton:pressed {
+                background: #5566cc;
+                padding: 1px 0px 0px 1px;
+            }
+            QPushButton:disabled {
+                background-color: #4a4a4a;
+                color: #888;
+            }
+        """)
+        self.recents_btn.clicked.connect(self._show_recents)
+        self.recents_btn.setEnabled(False)  # Disabled until we have recents
+        action_layout.addWidget(self.recents_btn)
+        
         layout.addLayout(action_layout)
         
         # Call button (large, prominent with glow effect)
@@ -244,6 +286,88 @@ class DialerWidget(QWidget):
         """Emit call requested signal"""
         if self.phone_number:
             logger.info(f"Call requested: {self.phone_number}")
+            self._add_to_recents(self.phone_number)
             self.call_requested.emit(self.phone_number)
             # Clear after calling
             self._on_clear()
+    
+    def _load_recents(self):
+        """Load recent numbers from file"""
+        try:
+            if os.path.exists(self.recents_file):
+                with open(self.recents_file, 'r') as f:
+                    self.recent_numbers = json.load(f)
+                logger.info(f"Loaded {len(self.recent_numbers)} recent numbers")
+        except Exception as e:
+            logger.error(f"Failed to load recents: {e}")
+            self.recent_numbers = []
+    
+    def _save_recents(self):
+        """Save recent numbers to file"""
+        try:
+            with open(self.recents_file, 'w') as f:
+                json.dump(self.recent_numbers, f)
+            logger.debug("Saved recent numbers")
+        except Exception as e:
+            logger.error(f"Failed to save recents: {e}")
+    
+    def _add_to_recents(self, number: str):
+        """Add number to recent list"""
+        # Remove if already exists (to move to front)
+        if number in self.recent_numbers:
+            self.recent_numbers.remove(number)
+        
+        # Add to front of list
+        self.recent_numbers.insert(0, number)
+        
+        # Keep only max_recents entries
+        self.recent_numbers = self.recent_numbers[:self.max_recents]
+        
+        # Save to file
+        self._save_recents()
+        
+        # Enable recents button
+        self.recents_btn.setEnabled(True)
+        
+        logger.debug(f"Added to recents: {number}")
+    
+    def _show_recents(self):
+        """Show menu with recent numbers"""
+        if not self.recent_numbers:
+            return
+        
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #2d3748;
+                color: white;
+                border: 2px solid rgba(0, 212, 255, 0.3);
+                border-radius: 8px;
+                padding: 5px;
+            }
+            QMenu::item {
+                padding: 10px 20px;
+                font-size: 16px;
+                font-family: 'Segoe UI';
+                border-radius: 4px;
+            }
+            QMenu::item:selected {
+                background-color: #00d4ff;
+                color: #1a1a2e;
+            }
+        """)
+        
+        # Add recent numbers to menu
+        for number in self.recent_numbers[:10]:  # Show last 10
+            action = menu.addAction(f"📞 {number}")
+            action.triggered.connect(lambda checked, n=number: self._dial_recent(n))
+        
+        # Show menu above the button
+        menu.exec_(self.recents_btn.mapToGlobal(self.recents_btn.rect().topLeft()))
+    
+    def _dial_recent(self, number: str):
+        """Fill number display with recent number"""
+        self.phone_number = number
+        self.number_display.setText(self.phone_number)
+        self.call_btn.setEnabled(True)
+        logger.info(f"Recalled recent number: {number}")
