@@ -58,39 +58,80 @@ class AudioWidget(QWidget):
         # Output channels display
         channels_frame = QFrame()
         channels_frame.setFrameStyle(QFrame.Box)
-        channels_frame.setStyleSheet("background-color: #2a2a2a; border: 1px solid #555;")
+        channels_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(42, 42, 42, 0.95),
+                    stop:1 rgba(26, 26, 26, 0.95)
+                );
+                border: 2px solid rgba(0, 212, 255, 0.3);
+                border-radius: 8px;
+            }
+        """)
         channels_layout = QVBoxLayout(channels_frame)
-        channels_layout.setContentsMargins(8, 8, 8, 8)
-        channels_layout.setSpacing(3)
+        channels_layout.setContentsMargins(12, 10, 12, 10)
+        channels_layout.setSpacing(8)
         
-        channels_title = QLabel("Available Lines")
-        channels_title.setFont(QFont("Arial", 10, QFont.Bold))
+        # Title
+        channels_title = QLabel("📊 Available Lines")
+        channels_title.setFont(QFont("Segoe UI", 11, QFont.Bold))
         channels_title.setAlignment(Qt.AlignCenter)
-        channels_title.setStyleSheet("color: white;")
+        channels_title.setStyleSheet("color: #00d4ff; padding: 5px;")
         channels_layout.addWidget(channels_title)
         
-        # Show available lines (not assigned to any output)
-        self.available_label = QLabel("Lines: (checking...)")
-        self.available_label.setFont(QFont("Arial", 8))
-        self.available_label.setAlignment(Qt.AlignLeft)
-        self.available_label.setStyleSheet("color: #4ecdc4; padding: 5px; background-color: rgba(78, 205, 196, 0.1); border-radius: 4px;")
+        # Show available lines in a nice box
+        self.available_label = QLabel("Unassigned: (checking...)")
+        self.available_label.setFont(QFont("Segoe UI", 9, QFont.Bold))
+        self.available_label.setAlignment(Qt.AlignCenter)
+        self.available_label.setStyleSheet("""
+            QLabel {
+                color: #2ed573;
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 rgba(46, 213, 115, 0.2),
+                    stop:1 rgba(46, 213, 115, 0.1)
+                );
+                border: 2px solid rgba(46, 213, 115, 0.4);
+                border-radius: 6px;
+                padding: 8px;
+            }
+        """)
         self.available_label.setWordWrap(True)
         channels_layout.addWidget(self.available_label)
         
-        # Separator
-        separator = QLabel("")
-        separator.setStyleSheet("border-bottom: 1px solid #555; margin: 5px 0px;")
-        channels_layout.addWidget(separator)
+        # Outputs title
+        outputs_title = QLabel("🔊 Output Assignments")
+        outputs_title.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        outputs_title.setAlignment(Qt.AlignCenter)
+        outputs_title.setStyleSheet("color: #00d4ff; padding: 5px 0px;")
+        channels_layout.addWidget(outputs_title)
         
-        # Show outputs 1-8 with assigned lines
+        # Grid layout for outputs (2 columns)
+        grid_layout = QGridLayout()
+        grid_layout.setSpacing(6)
+        
+        # Show outputs 1-8 in a 2-column grid
         self.output_labels = []
+        colors = ['#4af', '#fa4', '#4f4', '#f4f', '#ff4', '#4ff', '#f44', '#44f']
         for i in range(1, 9):
-            output_label = QLabel(f"Output {i} - (none)")
-            output_label.setFont(QFont("Arial", 9))
-            colors = ['#4af', '#fa4', '#4f4', '#f4f', '#ff4', '#4ff', '#f44', '#44f']
-            output_label.setStyleSheet(f"color: {colors[i-1]}; padding: 2px;")
-            channels_layout.addWidget(output_label)
+            output_label = QLabel(f"Out {i} → (none)")
+            output_label.setFont(QFont("Segoe UI", 9))
+            output_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {colors[i-1]};
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 4px;
+                    padding: 5px 8px;
+                }}
+            """)
+            row = (i - 1) // 2
+            col = (i - 1) % 2
+            grid_layout.addWidget(output_label, row, col)
             self.output_labels.append(output_label)
+        
+        channels_layout.addLayout(grid_layout)
         
         group_layout.addWidget(channels_frame)
         
@@ -173,16 +214,38 @@ class AudioWidget(QWidget):
         # Update available lines label
         if available_lines:
             lines_str = ", ".join([f"L{lid}" for lid in available_lines])
-            self.available_label.setText(f"Unassigned: {lines_str}")
+            self.available_label.setText(f"⚪ Unassigned: {lines_str}")
         else:
-            self.available_label.setText("Unassigned: (none - all assigned)")
+            self.available_label.setText("✅ All lines assigned to outputs")
         
         # Update output labels
         colors = ['#4af', '#fa4', '#4f4', '#f4f', '#ff4', '#4ff', '#f44', '#44f']
         for i in range(1, 9):
             if i in output_to_line:
                 line_id = output_to_line[i]
-                self.output_labels[i-1].setText(f"Output {i} → Line {line_id}")
+                self.output_labels[i-1].setText(f"Out {i} → L{line_id}")
+                self.output_labels[i-1].setStyleSheet(f"""
+                    QLabel {{
+                        color: {colors[i-1]};
+                        background: qlineargradient(
+                            x1:0, y1:0, x2:1, y2:0,
+                            stop:0 rgba(46, 213, 115, 0.3),
+                            stop:1 rgba(46, 213, 115, 0.1)
+                        );
+                        border: 1px solid rgba(46, 213, 115, 0.5);
+                        border-radius: 4px;
+                        padding: 5px 8px;
+                        font-weight: bold;
+                    }}
+                """)
             else:
-                self.output_labels[i-1].setText(f"Output {i} → (none)")
-            self.output_labels[i-1].setStyleSheet(f"color: {colors[i-1]}; padding: 2px;")
+                self.output_labels[i-1].setText(f"Out {i} → (none)")
+                self.output_labels[i-1].setStyleSheet(f"""
+                    QLabel {{
+                        color: {colors[i-1]};
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 4px;
+                        padding: 5px 8px;
+                    }}
+                """)
