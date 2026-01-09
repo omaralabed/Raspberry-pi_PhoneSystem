@@ -5,6 +5,7 @@ Run this to verify your installation
 """
 
 import sys
+import subprocess
 import unittest
 import logging
 
@@ -39,13 +40,15 @@ class TestImports(unittest.TestCase):
         except ImportError as e:
             self.fail(f"numpy import failed: {e}")
     
-    def test_pjsua2(self):
-        """Test PJSIP Python bindings"""
+    def test_baresip(self):
+        """Test Baresip availability"""
         try:
-            import pjsua2 as pj
-            self.assertTrue(True)
-        except ImportError as e:
-            self.fail(f"pjsua2 import failed: {e}\nRun install.py to install PJSIP")
+            result = subprocess.run(['baresip', '-h'], capture_output=True, timeout=2)
+            self.assertEqual(result.returncode, 0, "Baresip not installed. Run: sudo apt install baresip")
+        except FileNotFoundError:
+            self.fail("Baresip not found. Install with: sudo apt install baresip")
+        except subprocess.TimeoutExpired:
+            self.fail("Baresip help command timed out")
 
 
 class TestPhoneLine(unittest.TestCase):

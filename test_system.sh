@@ -26,7 +26,7 @@ echo -e "\n[5/6] Checking Python packages..."
 python3 -c "import PyQt5" 2>/dev/null && echo "✓ PyQt5" || echo "✗ PyQt5 not installed"
 python3 -c "import sounddevice" 2>/dev/null && echo "✓ sounddevice" || echo "✗ sounddevice not installed"
 python3 -c "import numpy" 2>/dev/null && echo "✓ numpy" || echo "✗ numpy not installed"
-python3 -c "import pjsua2" 2>/dev/null && echo "✓ pjsua2" || echo "✗ pjsua2 not installed (run install.py)"
+baresip -h >/dev/null 2>&1 && echo "✓ baresip" || echo "✗ baresip not installed (run: sudo apt install baresip)"
 
 # Check config files
 echo -e "\n[6/6] Checking configuration..."

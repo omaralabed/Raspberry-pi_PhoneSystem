@@ -1,8 +1,8 @@
 # Raspberry Pi Phone System Dependencies
-# Ubuntu 22.04 LTS - Python 3.10+
+# Ubuntu 24.04 LTS - Python 3.12+
 
 # SIP/VoIP Stack
-pjsua2==2.13.1
+# Using Baresip (installed via apt: sudo apt install baresip)
 
 # GUI Framework
 PyQt5==5.15.10

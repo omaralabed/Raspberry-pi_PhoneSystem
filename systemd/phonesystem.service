@@ -5,17 +5,17 @@ Wants=pulseaudio.service
 
 [Service]
 Type=simple
-User=pi
-Group=pi
-WorkingDirectory=/home/pi/Desktop/PhoneSystem
+User=procomm
+Group=procomm
+WorkingDirectory=/home/procomm/ProComm
 Environment="DISPLAY=:0"
-Environment="XAUTHORITY=/home/pi/.Xauthority"
+Environment="XAUTHORITY=/home/procomm/.Xauthority"
 Environment="PULSE_SERVER=unix:/run/user/1000/pulse/native"
-ExecStart=/usr/bin/python3 /home/pi/Desktop/PhoneSystem/main.py
+ExecStart=/usr/bin/python3 /home/procomm/ProComm/main.py
 Restart=on-failure
 RestartSec=10
-StandardOutput=append:/home/pi/Desktop/PhoneSystem/logs/systemd.log
-StandardError=append:/home/pi/Desktop/PhoneSystem/logs/systemd.log
+StandardOutput=append:/home/procomm/ProComm/logs/systemd.log
+StandardError=append:/home/procomm/ProComm/logs/systemd.log
 
 # Resource limits
 LimitRTPRIO=95

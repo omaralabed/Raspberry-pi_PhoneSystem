@@ -1,257 +1,431 @@
 #!/usr/bin/env python3
 """
-SIP Engine - PJSIP Wrapper
-Manages 8 SIP accounts with single trunk credentials
+SIP Engine - Baresip Wrapper
+Manages 8 SIP accounts using Baresip command-line tool
 """
 
 import json
 import logging
+import subprocess
 import threading
-from typing import List, Optional, Dict, Callable
-import pjsua2 as pj
+import time
+import re
+import os
+from pathlib import Path
+from typing import List, Optional, Dict, Any
 
 from .phone_line import PhoneLine, LineState
 
 logger = logging.getLogger(__name__)
 
 
-class SIPAccount(pj.Account):
-    """Extended PJSIP Account with callbacks"""
+class BaresipProcess:
+    """Manages a Baresip subprocess for one SIP line"""
     
-    def __init__(self, phone_line: PhoneLine, engine):
-        super().__init__()
+    def __init__(self, line_id: int, config: Dict[str, Any], phone_line: PhoneLine):
+        self.line_id = line_id
+        self.config = config
         self.phone_line = phone_line
-        self.engine = engine
-        self.current_call = None
+        self.process: Optional[subprocess.Popen] = None
+        self.monitor_thread: Optional[threading.Thread] = None
+        self.running = False
+        self.current_call_id: Optional[str] = None
+        self.config_dir = Path.home() / f".baresip_line{line_id}"
+        
+    def _create_config_files(self) -> bool:
+        """Create Baresip configuration files"""
+        try:
+            self.config_dir.mkdir(exist_ok=True)
+            # Secure directory permissions (only owner can read/write/execute)
+            os.chmod(self.config_dir, 0o700)
+            
+            # Create accounts file
+            accounts_file = self.config_dir / "accounts"
+            sip_user = self.config.get("username", "")
+            sip_server = self.config.get("sip_server", "")
+            sip_password = self.config.get("password", "")
+            
+            # Format: <sip:user@domain>;auth_pass=password
+            account_line = f"<sip:{sip_user}@{sip_server}>;auth_pass={sip_password}\n"
+            
+            with open(accounts_file, "w") as f:
+                f.write(account_line)
+            # Secure file permissions (only owner can read/write)
+            os.chmod(accounts_file, 0o600)
+            
+            # Create config file
+            config_file = self.config_dir / "config"
+            with open(config_file, "w") as f:
+                f.write(f"# Baresip configuration for Line {self.line_id}\n")
+                f.write("\n# Audio settings\n")
+                f.write("audio_player alsa,default\n")
+                f.write("audio_source alsa,default\n")
+                f.write("audio_alert alsa,default\n")
+                f.write("\n# SIP settings\n")
+                f.write("sip_listen 0.0.0.0:0\n")
+                f.write("\n# Disable video\n")
+                f.write("video_display no\n")
+                f.write("video_source no\n")
+                f.write("\n# Module path\n")
+                f.write("module_path /usr/lib/baresip/modules\n")
+                f.write("\n# Load modules\n")
+                f.write("module alsa.so\n")
+                f.write("module account.so\n")
+                f.write("module menu.so\n")
+                f.write("module stdio.so\n")
+            
+            logger.debug(f"Line {self.line_id}: Config files created in {self.config_dir}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Line {self.line_id}: Failed to create config: {e}")
+            return False
     
-    def onRegState(self, prm: pj.OnRegStateParam) -> None:
-        """Called when registration state changes"""
-        info = self.getInfo()
-        status = info.regStatus
-        logger.info(f"Line {self.phone_line.line_id}: Registration status: {status}")
-        
-        if status == 200:  # OK
-            logger.info(f"Line {self.phone_line.line_id}: Registered successfully")
-        else:
-            logger.error(f"Line {self.phone_line.line_id}: Registration failed: {status}")
+    def start(self) -> bool:
+        """Start Baresip process"""
+        try:
+            if not self._create_config_files():
+                return False
+            
+            # Start Baresip with verbose output
+            cmd = ["baresip", "-f", str(self.config_dir), "-v"]
+            
+            self.process = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+            
+            self.running = True
+            
+            # Start output monitor thread
+            self.monitor_thread = threading.Thread(
+                target=self._monitor_output,
+                daemon=True
+            )
+            self.monitor_thread.start()
+            
+            logger.info(f"Line {self.line_id}: Baresip started (PID {self.process.pid})")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Line {self.line_id}: Failed to start Baresip: {e}")
+            return False
     
-    def onIncomingCall(self, prm: pj.OnIncomingCallParam) -> None:
-        """Called on incoming call - we reject these (outgoing only)"""
-        call = SIPCall(self, prm.callId)
-        call_info = call.getInfo()
-        logger.warning(f"Line {self.phone_line.line_id}: Rejecting incoming call from {call_info.remoteUri}")
+    def _monitor_output(self) -> None:
+        """Monitor Baresip stdout/stderr for state changes"""
+        if not self.process or not self.process.stdout:
+            return
         
-        # Reject with 403 Forbidden (outgoing only system)
-        prm = pj.CallOpParam()
-        prm.statusCode = 403
-        call.hangup(prm)
-
-
-class SIPCall(pj.Call):
-    """Extended PJSIP Call with state management"""
-    
-    def __init__(self, account: SIPAccount, call_id: int = pj.PJSUA_INVALID_ID):
-        super().__init__(account, call_id)
-        self.account = account
-        self.phone_line = account.phone_line
-    
-    def onCallState(self, prm: pj.OnCallStateParam) -> None:
-        """Called when call state changes"""
-        info = self.getInfo()
-        state = info.state
-        
-        logger.info(f"Line {self.phone_line.line_id}: Call state: {state}")
-        
-        if state == pj.PJSIP_INV_STATE_CALLING:
-            self.phone_line.set_state(LineState.DIALING)
-        
-        elif state == pj.PJSIP_INV_STATE_EARLY:
-            self.phone_line.set_state(LineState.RINGING)
-        
-        elif state == pj.PJSIP_INV_STATE_CONFIRMED:
-            self.phone_line.call_connected(self.getId())
-            self.account.current_call = self
-        
-        elif state == pj.PJSIP_INV_STATE_DISCONNECTED:
-            self.phone_line.reset()
-            self.account.current_call = None
-            # Delete call object
-            self.delete()
-    
-    def onCallMediaState(self, prm: pj.OnCallMediaStateParam) -> None:
-        """Called when media state changes"""
-        info = self.getInfo()
-        
-        for mi in info.media:
-            if mi.type == pj.PJMEDIA_TYPE_AUDIO:
-                if mi.status == pj.PJSUA_CALL_MEDIA_ACTIVE:
-                    # Connect audio
-                    call_media = self.getMedia(mi.index)
-                    aud_media = pj.AudioMedia.typecastFromMedia(call_media)
+        try:
+            for line in iter(self.process.stdout.readline, ""):
+                if not line or not self.running:
+                    break
+                
+                line = line.strip()
+                if not line:
+                    continue
+                
+                logger.debug(f"Line {self.line_id}: {line}")
+                
+                # Parse Baresip output for events
+                line_lower = line.lower()
+                
+                # Registration events
+                if "register: 200 ok" in line_lower:
+                    logger.info(f"Line {self.line_id}: SIP registration successful")
                     
-                    # Get sound device
-                    snd = self.account.engine.ep.audDevManager().getPlaybackDevMedia()
-                    
-                    # Route audio
-                    aud_media.startTransmit(snd)
-                    snd.startTransmit(aud_media)
-                    
-                    logger.info(f"Line {self.phone_line.line_id}: Audio connected")
+                elif "register:" in line_lower and ("401" in line_lower or "403" in line_lower):
+                    logger.error(f"Line {self.line_id}: SIP registration failed")
+                
+                # Call state events (be specific to avoid false matches)
+                elif "call: connecting" in line_lower or "100 trying" in line_lower:
+                    logger.info(f"Line {self.line_id}: Call connecting")
+                    self.phone_line.set_state(LineState.DIALING)
+                
+                elif ("180 ringing" in line_lower or "call: ringing" in line_lower):
+                    logger.info(f"Line {self.line_id}: Call ringing")
+                    self.phone_line.set_state(LineState.RINGING)
+                
+                elif "call: established" in line_lower:
+                    # Only transition to connected from valid call states
+                    if self.phone_line.state in [LineState.DIALING, LineState.RINGING]:
+                        logger.info(f"Line {self.line_id}: Call connected")
+                        self.phone_line.call_connected(self.current_call_id)
+                    else:
+                        logger.debug(f"Line {self.line_id}: Ignoring 'established' in state {self.phone_line.state.value}")
+                
+                elif "call: closed" in line_lower or "call closed" in line_lower:
+                    # Only reset if we have an active call ID
+                    if self.current_call_id:
+                        logger.info(f"Line {self.line_id}: Call ended")
+                        self.phone_line.reset()
+                        self.current_call_id = None
+                    else:
+                        logger.debug(f"Line {self.line_id}: Ignoring 'call closed' - already reset")
+                
+                elif "hangup" in line_lower and "ok" in line_lower:
+                    # Only reset if we have an active call ID
+                    if self.current_call_id:
+                        logger.info(f"Line {self.line_id}: Hangup confirmed")
+                        self.phone_line.reset()
+                        self.current_call_id = None
+                    else:
+                        logger.debug(f"Line {self.line_id}: Ignoring 'hangup ok' - already reset")
+                
+        except Exception as e:
+            if self.running:
+                logger.error(f"Line {self.line_id}: Monitor thread crashed: {e}")
+                self.running = False
+                self.phone_line.reset()  # Reset line state on monitor failure
+        finally:
+            # Handle process death (stdout EOF reached)
+            if self.running and self.process:
+                exit_code = self.process.poll()
+                if exit_code is not None:
+                    logger.error(f"Line {self.line_id}: Baresip process died (exit code {exit_code})")
+                    self.running = False
+                    self.phone_line.reset()
+    
+    def make_call(self, phone_number: str) -> bool:
+        """Make outgoing call"""
+        if not self.running or not self.process or not self.process.stdin:
+            logger.error(f"Line {self.line_id}: Baresip not running")
+            return False
+        
+        if self.process.stdin.closed:
+            logger.error(f"Line {self.line_id}: Baresip stdin closed")
+            return False
+        
+        # Validate phone number - only allow digits, +, -, *, #, and spaces
+        if not phone_number or not re.match(r'^[0-9+\-*#\s]+$', phone_number):
+            logger.error(f"Line {self.line_id}: Invalid phone number format: {phone_number}")
+            return False
+        
+        # Remove any whitespace
+        phone_number = phone_number.replace(' ', '')
+        
+        # Validate not empty after whitespace removal
+        if not phone_number:
+            logger.error(f"Line {self.line_id}: Phone number is empty after whitespace removal")
+            return False
+        
+        try:
+            sip_uri = f"sip:{phone_number}@{self.config['sip_server']}"
+            dial_cmd = f"/dial {sip_uri}\n"
+            self.process.stdin.write(dial_cmd)
+            self.process.stdin.flush()
+            
+            # Only update phone line state AFTER successful write/flush
+            self.current_call_id = phone_number
+            if not self.phone_line.dial(phone_number):
+                logger.error(f"Line {self.line_id}: Phone line rejected dial request")
+                return False
+            
+            logger.info(f"Line {self.line_id}: Dialing {phone_number}")
+            return True
+            
+        except (BrokenPipeError, OSError) as e:
+            logger.error(f"Line {self.line_id}: Baresip process died during dial: {e}")
+            self.running = False
+            self.phone_line.reset()  # Reset state on failure
+            return False
+        except Exception as e:
+            logger.error(f"Line {self.line_id}: Failed to dial: {e}")
+            self.phone_line.reset()  # Reset state on failure
+            return False
+    
+    def hangup(self) -> bool:
+        """Hang up current call"""
+        if not self.running or not self.process or not self.process.stdin:
+            return False
+        
+        if self.process.stdin.closed:
+            logger.warning(f"Line {self.line_id}: Baresip stdin already closed")
+            return False
+        
+        try:
+            self.process.stdin.write("/hangup\n")
+            self.process.stdin.flush()
+            
+            logger.info(f"Line {self.line_id}: Sending hangup")
+            return True
+            
+        except (BrokenPipeError, OSError) as e:
+            logger.error(f"Line {self.line_id}: Baresip process died during hangup: {e}")
+            self.running = False
+            self.phone_line.reset()  # Clean up state
+            return False
+        except Exception as e:
+            logger.error(f"Line {self.line_id}: Failed to hangup: {e}")
+            self.phone_line.reset()  # Clean up state
+            return False
+    
+    def stop(self) -> None:
+        """Stop Baresip process"""
+        self.running = False
+        
+        if self.process:
+            try:
+                # Try graceful quit
+                if self.process.stdin and not self.process.stdin.closed:
+                    try:
+                        self.process.stdin.write("/quit\n")
+                        self.process.stdin.flush()
+                    except (BrokenPipeError, OSError):
+                        pass  # Process already dead
+                
+                # Wait briefly for graceful shutdown
+                self.process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                # Force kill if needed
+                self.process.kill()
+                self.process.wait()
+            except Exception as e:
+                logger.warning(f"Line {self.line_id}: Error during stop: {e}")
+                try:
+                    self.process.kill()
+                except:
+                    pass
+            finally:
+                # Explicitly close pipes to prevent resource leaks
+                if self.process.stdin:
+                    try:
+                        self.process.stdin.close()
+                    except:
+                        pass
+                if self.process.stdout:
+                    try:
+                        self.process.stdout.close()
+                    except:
+                        pass
+            
+            self.process = None
+        
+        if self.monitor_thread and self.monitor_thread.is_alive():
+            self.monitor_thread.join(timeout=1)
+            self.monitor_thread = None
+        
+        logger.info(f"Line {self.line_id}: Baresip stopped")
 
 
 class SIPEngine:
-    """
-    Main SIP engine managing 8 phone lines with single trunk
-    """
+    """Main SIP engine managing multiple phone lines via Baresip"""
     
-    def __init__(self, config_path: str = "config/sip_config.json"):
-        """
-        Initialize SIP engine
-        
-        Args:
-            config_path: Path to SIP configuration file
-        """
-        self.config_path = config_path
-        self.config = self._load_config()
-        
-        # PJSIP objects
-        self.ep: Optional[pj.Endpoint] = None
-        self.transport: Optional[pj.TransportConfig] = None
-        
-        # Phone lines and accounts
-        self.num_lines = self.config.get("num_lines", 8)
+    def __init__(self, num_lines: int = 8):
+        self.num_lines = num_lines
         self.lines: List[PhoneLine] = []
-        self.accounts: List[SIPAccount] = []
-        
-        # State
+        self.baresip_processes: List[BaresipProcess] = []
+        self.config: Dict[str, Any] = {}
         self.is_running = False
-        self.lock = threading.Lock()
         
-        logger.info(f"SIP Engine initialized for {self.num_lines} lines")
+        for i in range(1, num_lines + 1):
+            line = PhoneLine(line_id=i)
+            self.lines.append(line)
     
-    def _load_config(self) -> Dict:
+    def load_config(self, config_path: str = "config/sip_config.json") -> bool:
         """Load SIP configuration from JSON file"""
         try:
-            with open(self.config_path, 'r') as f:
-                config = json.load(f)
-            logger.info(f"Loaded SIP config from {self.config_path}")
-            return config
+            config_file = Path(config_path)
+            if not config_file.exists():
+                logger.error(f"Config file not found: {config_path}")
+                return False
+            
+            with open(config_file, "r") as f:
+                self.config = json.load(f)
+            
+            required = ["username", "password", "sip_server"]
+            for field in required:
+                if field not in self.config:
+                    logger.error(f"Missing required config field: {field}")
+                    return False
+                if not self.config[field]:
+                    logger.error(f"Config field '{field}' cannot be empty")
+                    return False
+            
+            logger.info(f"Loaded SIP config from {config_path}")
+            logger.info(f"SIP Server: {self.config['sip_server']}")
+            logger.info(f"Username: {self.config['username']}")
+            return True
+            
         except Exception as e:
-            logger.error(f"Failed to load SIP config: {e}")
-            raise
+            logger.error(f"Failed to load config: {e}")
+            return False
     
     def start(self) -> bool:
-        """
-        Start SIP engine and register all accounts
+        """Initialize and start SIP engine"""
+        if self.is_running:
+            logger.warning("SIP engine already running")
+            return True
         
-        Returns:
-            True if started successfully
-        """
+        if not self.config:
+            logger.error("No configuration loaded")
+            return False
+        
         try:
-            # Create PJSIP endpoint
-            self.ep = pj.Endpoint()
-            self.ep.libCreate()
+            logger.info(f"Starting SIP engine with {self.num_lines} lines...")
             
-            # Initialize endpoint
-            ep_cfg = pj.EpConfig()
-            ep_cfg.logConfig.level = 4  # Info level
-            ep_cfg.logConfig.consoleLevel = 4
-            self.ep.libInit(ep_cfg)
-            
-            # Create UDP transport
-            transport_cfg = pj.TransportConfig()
-            transport_cfg.port = 0  # Use any available port
-            self.transport = self.ep.transportCreate(pj.PJSIP_TRANSPORT_UDP, transport_cfg)
-            
-            # Start the library
-            self.ep.libStart()
-            
-            logger.info("PJSIP library started")
-            
-            # Create phone lines and SIP accounts
-            for i in range(1, self.num_lines + 1):
-                line = PhoneLine(line_id=i)
-                self.lines.append(line)
+            for i, line in enumerate(self.lines, start=1):
+                baresip = BaresipProcess(i, self.config, line)
                 
-                # Create and configure account
-                account = SIPAccount(line, self)
-                acc_cfg = pj.AccountConfig()
+                if not baresip.start():
+                    logger.error(f"Failed to start Baresip for line {i}")
+                    self.stop()
+                    return False
                 
-                # SIP credentials (same for all lines)
-                sip_server = self.config["sip_server"]
-                username = self.config["username"]
-                password = self.config["password"]
-                
-                acc_cfg.idUri = f"sip:{username}@{sip_server}"
-                acc_cfg.regConfig.registrarUri = f"sip:{sip_server}"
-                acc_cfg.sipConfig.authCreds.append(
-                    pj.AuthCredInfo("digest", "*", username, 0, password)
-                )
-                
-                # Caller ID configuration
-                caller_id_name = self.config.get("caller_id_name", "Phone System")
-                caller_id_number = self.config.get("caller_id_number", username)
-                acc_cfg.sipConfig.proxies = []
-                
-                # Create account
-                account.create(acc_cfg)
-                self.accounts.append(account)
-                
-                line.sip_account_id = account.getId()
-                
-                logger.info(f"Line {i}: Account created and registering")
+                self.baresip_processes.append(baresip)
+                time.sleep(0.3)  # Small delay between starts to avoid resource contention
             
             self.is_running = True
-            logger.info(f"SIP engine started with {self.num_lines} lines")
+            logger.info(f"SIP engine started successfully with {self.num_lines} lines")
+            # Note: Removed unnecessary 2-second sleep here
+            
             return True
             
         except Exception as e:
             logger.error(f"Failed to start SIP engine: {e}")
+            self.stop()
             return False
     
     def stop(self) -> None:
         """Stop SIP engine and cleanup"""
-        if not self.is_running:
+        # Don't early return - we need to cleanup even if not fully started
+        if not self.is_running and not self.baresip_processes:
             return
         
         logger.info("Stopping SIP engine...")
         
-        # Hangup all active calls
-        for account in self.accounts:
-            if account.current_call:
+        # First, send hangup to all active calls
+        for baresip in self.baresip_processes:
+            if baresip.current_call_id:
                 try:
-                    account.current_call.hangup(pj.CallOpParam())
-                except:
-                    pass
+                    baresip.hangup()
+                except Exception as e:
+                    logger.warning(f"Error hanging up line {baresip.line_id}: {e}")
         
-        # Delete accounts
-        for account in self.accounts:
-            try:
-                account.delete()
-            except:
-                pass
+        # Give adequate time for graceful hangup (2 seconds for network round-trip)
+        time.sleep(2.0)
         
-        # Destroy PJSIP
-        if self.ep:
+        # Now stop all processes
+        for baresip in self.baresip_processes:
             try:
-                self.ep.libDestroy()
-            except:
-                pass
+                baresip.stop()
+            except Exception as e:
+                logger.warning(f"Error stopping line {baresip.line_id}: {e}")
+        
+        self.baresip_processes.clear()
+        
+        for line in self.lines:
+            line.reset()
         
         self.is_running = False
         logger.info("SIP engine stopped")
     
     def make_call(self, line_id: int, phone_number: str) -> bool:
-        """
-        Make outgoing call on specified line
-        
-        Args:
-            line_id: Line number (1-8)
-            phone_number: Destination number
-            
-        Returns:
-            True if call initiated successfully
-        """
+        """Make outgoing call on specified line"""
         if not self.is_running:
             logger.error("SIP engine not running")
             return False
@@ -260,65 +434,38 @@ class SIPEngine:
             logger.error(f"Invalid line ID: {line_id}")
             return False
         
+        # Verify the line and baresip process exist
+        if line_id > len(self.lines) or line_id > len(self.baresip_processes):
+            logger.error(f"Line {line_id} not initialized")
+            return False
+        
         line = self.lines[line_id - 1]
-        account = self.accounts[line_id - 1]
+        baresip = self.baresip_processes[line_id - 1]
         
         if not line.is_available():
-            logger.warning(f"Line {line_id} not available")
+            logger.warning(f"Line {line_id} not available (state: {line.state})")
             return False
         
-        try:
-            # Mark line as dialing
-            line.dial(phone_number)
-            
-            # Create call
-            call = SIPCall(account)
-            
-            # Setup call parameters
-            prm = pj.CallOpParam()
-            prm.opt.audioCount = 1
-            prm.opt.videoCount = 0
-            
-            # Make the call
-            sip_uri = f"sip:{phone_number}@{self.config['sip_server']}"
-            call.makeCall(sip_uri, prm)
-            
-            logger.info(f"Line {line_id}: Calling {phone_number}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Line {line_id}: Failed to make call: {e}")
-            line.reset()
-            return False
+        return baresip.make_call(phone_number)
     
     def hangup_call(self, line_id: int) -> bool:
-        """
-        Hang up call on specified line
-        
-        Args:
-            line_id: Line number (1-8)
-            
-        Returns:
-            True if hangup successful
-        """
+        """Hang up call on specified line"""
         if line_id < 1 or line_id > self.num_lines:
             return False
         
-        line = self.lines[line_id - 1]
-        account = self.accounts[line_id - 1]
+        # Verify the line and baresip process exist
+        if line_id > len(self.lines) or line_id > len(self.baresip_processes):
+            logger.error(f"Line {line_id} not initialized")
+            return False
         
-        if not account.current_call:
+        line = self.lines[line_id - 1]
+        baresip = self.baresip_processes[line_id - 1]
+        
+        if not line.is_active():
             logger.warning(f"Line {line_id}: No active call")
             return False
         
-        try:
-            prm = pj.CallOpParam()
-            account.current_call.hangup(prm)
-            logger.info(f"Line {line_id}: Hanging up")
-            return True
-        except Exception as e:
-            logger.error(f"Line {line_id}: Failed to hangup: {e}")
-            return False
+        return baresip.hangup()
     
     def get_line(self, line_id: int) -> Optional[PhoneLine]:
         """Get phone line object"""

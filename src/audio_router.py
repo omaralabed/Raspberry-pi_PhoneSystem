@@ -100,27 +100,33 @@ class AudioRouter:
     
     def stop(self) -> None:
         """Stop audio routing system"""
-        if not self.is_running:
-            return
-        
-        logger.info("Stopping audio router...")
-        
-        # Stop all streams
-        for line_id, stream in list(self.streams.items()):
-            try:
-                stream.stop()
-                stream.close()
-            except:
-                pass
-        
-        self.streams.clear()
-        self.audio_queues.clear()
-        self.is_running = False
-        
-        logger.info("Audio router stopped")
+        with self.lock:
+            if not self.is_running:
+                return
+            
+            logger.info("Stopping audio router...")
+            
+            # Stop all streams
+            for line_id, stream in list(self.streams.items()):
+                try:
+                    stream.stop()
+                    stream.close()
+                except:
+                    pass
+            
+            self.streams.clear()
+            self.audio_queues.clear()
+            self.is_running = False
+            
+            logger.info("Audio router stopped")
     
     def _find_device(self) -> Optional[int]:
         """Find audio device by name"""
+        # If no device name configured, use default
+        if not self.device_name:
+            logger.info("No audio device name configured, using default")
+            return sd.default.device[1]  # Default output device
+        
         devices = sd.query_devices()
         
         for idx, device in enumerate(devices):
@@ -149,6 +155,12 @@ class AudioRouter:
             # Get output channel from line
             channel = line.audio_output.channel
             
+            # Channel 0 means no output (valid but no routing needed)
+            if channel == 0:
+                logger.info(f"Line {line.line_id}: No output assigned")
+                self.routing_map[line.line_id] = 0
+                return True
+            
             if channel > self.num_outputs:
                 logger.error(f"Line {line.line_id}: Channel {channel} exceeds available outputs ({self.num_outputs})")
                 return False
@@ -164,7 +176,7 @@ class AudioRouter:
         
         Args:
             line_id: Line number (1-8)
-            channel: Output channel (1-8)
+            channel: Output channel (0=no output, 1-8=physical outputs)
             
         Returns:
             True if routing updated successfully
@@ -172,14 +184,21 @@ class AudioRouter:
         if not self.is_running:
             return False
         
-        if not 1 <= channel <= self.num_outputs:
-            logger.error(f"Invalid channel {channel}, must be 1-{self.num_outputs}")
+        if not 1 <= line_id <= 8:
+            logger.error(f"Invalid line_id {line_id}, must be 1-8")
+            return False
+        
+        if not 0 <= channel <= self.num_outputs:
+            logger.error(f"Invalid channel {channel}, must be 0-{self.num_outputs}")
             return False
         
         with self.lock:
             self.routing_map[line_id] = channel
             
-            logger.info(f"Line {line_id}: Audio routing updated to Output {channel}")
+            if channel == 0:
+                logger.info(f"Line {line_id}: Audio routing disabled (no output)")
+            else:
+                logger.info(f"Line {line_id}: Audio routing updated to Output {channel}")
             return True
     
     def get_routing(self, line_id: int) -> Optional[int]:
