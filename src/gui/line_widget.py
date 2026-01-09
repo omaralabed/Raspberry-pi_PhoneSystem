@@ -187,9 +187,11 @@ class LineWidget(QWidget):
         
         button_row.addStretch()
         
-        # Hangup button with modern gradient
-        self.hangup_btn = QPushButton("✖ HANGUP")
-        self.hangup_btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        # Hangup button with modern gradient - bigger and more prominent
+        self.hangup_btn = QPushButton("📞 HANG UP")
+        self.hangup_btn.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        self.hangup_btn.setMinimumHeight(50)
+        self.hangup_btn.setMinimumWidth(130)
         self.hangup_btn.setVisible(False)
         self.hangup_btn.clicked.connect(self._on_hangup)
         self.hangup_btn.setStyleSheet("""
@@ -201,10 +203,10 @@ class LineWidget(QWidget):
                 );
                 color: white;
                 border: none;
-                border-radius: 6px;
-                padding: 8px 15px;
+                border-radius: 8px;
+                padding: 10px 20px;
                 font-weight: bold;
-                letter-spacing: 1px;
+                letter-spacing: 2px;
             }
             QPushButton:hover {
                 background: qlineargradient(
@@ -212,10 +214,11 @@ class LineWidget(QWidget):
                     stop:0 #ff5252,
                     stop:1 #dd4a5f
                 );
+                border: 2px solid rgba(255, 255, 255, 0.3);
             }
             QPushButton:pressed {
                 background: #cc3e3e;
-                padding: 9px 14px 7px 16px;
+                padding: 11px 19px 9px 21px;
             }
         """)
         button_row.addWidget(self.hangup_btn)
