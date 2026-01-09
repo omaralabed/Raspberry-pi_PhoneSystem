@@ -44,8 +44,8 @@ class LineWidget(QWidget):
     
     def _create_ui(self):
         """Create line widget UI"""
-        self.setMinimumHeight(90)
-        self.setMaximumHeight(120)
+        self.setMinimumHeight(110)
+        self.setMaximumHeight(140)
         
         # Main frame with modern styling
         self.frame = QFrame(self)
@@ -74,8 +74,8 @@ class LineWidget(QWidget):
         layout.addWidget(self.frame)
         
         frame_layout = QVBoxLayout(self.frame)
-        frame_layout.setContentsMargins(12, 10, 12, 10)
-        frame_layout.setSpacing(6)
+        frame_layout.setContentsMargins(12, 12, 12, 12)
+        frame_layout.setSpacing(8)
         
         # Top row: Line number and audio label
         top_row = QHBoxLayout()
@@ -107,14 +107,15 @@ class LineWidget(QWidget):
         
         frame_layout.addLayout(top_row)
         
-        # Status label with modern font
+        # Status label with modern font and more space
         self.status_label = QLabel("Available")
         self.status_label.setFont(QFont("Segoe UI", 11))
         self.status_label.setAlignment(Qt.AlignLeft)
         self.status_label.setStyleSheet("""
             QLabel {
                 color: #95e1d3;
-                padding: 2px 0px;
+                padding: 4px 0px 6px 0px;
+                min-height: 20px;
             }
         """)
         frame_layout.addWidget(self.status_label)
