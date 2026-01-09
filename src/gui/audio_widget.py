@@ -138,45 +138,100 @@ class AudioWidget(QWidget):
         # Test section
         test_frame = QFrame()
         test_frame.setFrameStyle(QFrame.Box)
-        test_frame.setStyleSheet("background-color: #2a2a2a; border: 1px solid #555;")
+        test_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(42, 42, 42, 0.95),
+                    stop:1 rgba(26, 26, 26, 0.95)
+                );
+                border: 2px solid rgba(0, 212, 255, 0.3);
+                border-radius: 8px;
+            }
+        """)
         test_layout = QVBoxLayout(test_frame)
-        test_layout.setContentsMargins(5, 5, 5, 5)
+        test_layout.setContentsMargins(12, 10, 12, 10)
+        test_layout.setSpacing(10)
         
-        test_title = QLabel("Test Audio Output")
-        test_title.setFont(QFont("Arial", 9, QFont.Bold))
+        test_title = QLabel("🎵 Test Audio Output")
+        test_title.setFont(QFont("Segoe UI", 11, QFont.Bold))
         test_title.setAlignment(Qt.AlignCenter)
-        test_title.setStyleSheet("color: white;")
+        test_title.setStyleSheet("color: #00d4ff; padding: 5px;")
         test_layout.addWidget(test_title)
         
-        # Channel selector
+        # Channel selector with modern styling
         selector_layout = QHBoxLayout()
+        selector_layout.setSpacing(10)
+        
         selector_label = QLabel("Channel:")
-        selector_label.setFont(QFont("Arial", 9))
+        selector_label.setFont(QFont("Segoe UI", 10, QFont.Bold))
         selector_label.setStyleSheet("color: white;")
         selector_layout.addWidget(selector_label)
         
         self.channel_spinbox = QSpinBox()
         self.channel_spinbox.setRange(1, 8)
         self.channel_spinbox.setValue(1)
-        self.channel_spinbox.setFont(QFont("Arial", 10))
+        self.channel_spinbox.setFont(QFont("Segoe UI", 11, QFont.Bold))
+        self.channel_spinbox.setMinimumHeight(35)
+        self.channel_spinbox.setStyleSheet("""
+            QSpinBox {
+                background: rgba(255, 255, 255, 0.1);
+                border: 2px solid rgba(0, 212, 255, 0.3);
+                border-radius: 6px;
+                padding: 5px 10px;
+                color: #00d4ff;
+            }
+            QSpinBox::up-button, QSpinBox::down-button {
+                background: rgba(0, 212, 255, 0.2);
+                border: none;
+                width: 20px;
+            }
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+                background: rgba(0, 212, 255, 0.4);
+            }
+            QSpinBox::up-arrow {
+                width: 10px;
+                height: 10px;
+            }
+            QSpinBox::down-arrow {
+                width: 10px;
+                height: 10px;
+            }
+        """)
         selector_layout.addWidget(self.channel_spinbox)
+        selector_layout.addStretch()
         
         test_layout.addLayout(selector_layout)
         
-        # Test button
+        # Test button with modern gradient
         self.test_btn = QPushButton("🔊 Test Selected Output")
-        self.test_btn.setFont(QFont("Arial", 9))
+        self.test_btn.setFont(QFont("Segoe UI", 11, QFont.Bold))
+        self.test_btn.setMinimumHeight(45)
         self.test_btn.clicked.connect(self._on_test_output)
         self.test_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2a5a6a;
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #00d4ff,
+                    stop:1 #0088cc
+                );
                 color: white;
                 border: none;
-                border-radius: 3px;
-                padding: 8px;
+                border-radius: 8px;
+                padding: 10px;
+                font-weight: bold;
+                letter-spacing: 1px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #00e4ff,
+                    stop:1 #0099dd
+                );
             }
             QPushButton:pressed {
-                background-color: #1a4a5a;
+                background: #0077aa;
+                padding: 11px 9px 9px 11px;
             }
         """)
         test_layout.addWidget(self.test_btn)
