@@ -119,17 +119,16 @@ class MainWindow(QMainWindow):
         layout.setSpacing(10)
         layout.setContentsMargins(15, 15, 15, 15)
         
-        # Title with modern styling
-        title = QLabel("📞 PHONE LINES")
-        title.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        # Compact title with modern styling
+        title = QLabel("PHONE LINES")
+        title.setFont(QFont("Segoe UI", 12, QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("""
             QLabel {
                 color: #00d4ff;
-                padding: 10px;
-                background: rgba(0, 212, 255, 0.1);
-                border-radius: 8px;
-                letter-spacing: 2px;
+                padding: 6px;
+                background: rgba(0, 212, 255, 0.08);
+                border-radius: 6px;
             }
         """)
         layout.addWidget(title, 0, 0, 1, 2)
