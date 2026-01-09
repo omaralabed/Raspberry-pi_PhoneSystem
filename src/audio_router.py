@@ -48,6 +48,11 @@ class AudioRouter:
         self.streams: Dict[int, object] = {}
         self.audio_queues: Dict[int, queue.Queue] = {}
         
+        # Test tone state
+        self.test_tone_active = False
+        self.test_tone_channel = None
+        self.test_tone_stream = None
+        
         # State
         self.is_running = False
         self.lock = threading.Lock()
@@ -272,6 +277,87 @@ class AudioRouter:
             
         except Exception as e:
             logger.error(f"Audio test failed: {e}")
+            return False
+    
+    def start_continuous_tone(self, channel: int) -> bool:
+        """
+        Start continuous test tone on specified output channel
+        
+        Args:
+            channel: Output channel (1-8) to test
+            
+        Returns:
+            True if started successfully
+        """
+        if not self.is_running:
+            logger.error("Audio router not running")
+            return False
+        
+        if not 1 <= channel <= self.num_outputs:
+            logger.error(f"Invalid channel {channel}, must be 1-{self.num_outputs}")
+            return False
+        
+        # Stop any existing tone
+        self.stop_continuous_tone()
+        
+        try:
+            # Generate continuous 1 kHz sine wave tone
+            def audio_callback(outdata, frames, time, status):
+                if status:
+                    logger.warning(f"Audio callback status: {status}")
+                
+                t = np.linspace(0, frames / self.sample_rate, frames)
+                tone = np.sin(2 * np.pi * 1000 * t) * 0.3  # 30% volume
+                
+                # Clear all channels
+                outdata.fill(0)
+                
+                # Assign tone to selected channel (channel-1 for 0-based index)
+                outdata[:, channel - 1] = tone[:, np.newaxis]
+            
+            # Start output stream
+            num_device_channels = sd.query_devices(self.device_index)['max_output_channels']
+            self.test_tone_stream = sd.OutputStream(
+                device=self.device_index,
+                channels=num_device_channels,
+                callback=audio_callback,
+                samplerate=self.sample_rate,
+                blocksize=self.buffer_size
+            )
+            self.test_tone_stream.start()
+            
+            self.test_tone_active = True
+            self.test_tone_channel = channel
+            logger.info(f"Started continuous tone on Output {channel}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to start continuous tone: {e}")
+            return False
+    
+    def stop_continuous_tone(self) -> bool:
+        """
+        Stop continuous test tone
+        
+        Returns:
+            True if stopped successfully
+        """
+        if not self.test_tone_active:
+            return True
+        
+        try:
+            if self.test_tone_stream:
+                self.test_tone_stream.stop()
+                self.test_tone_stream.close()
+                self.test_tone_stream = None
+            
+            self.test_tone_active = False
+            logger.info(f"Stopped continuous tone on Output {self.test_tone_channel}")
+            self.test_tone_channel = None
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to stop continuous tone: {e}")
             return False
     
     def get_status(self) -> Dict:

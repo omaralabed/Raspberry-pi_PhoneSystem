@@ -204,10 +204,12 @@ class AudioWidget(QWidget):
         test_layout.addLayout(selector_layout)
         
         # Test button with modern gradient
-        self.test_btn = QPushButton("🔊 Test Selected Output")
+        self.test_btn = QPushButton("🔊 Hold to Test")
         self.test_btn.setFont(QFont("Segoe UI", 11, QFont.Bold))
         self.test_btn.setMinimumHeight(45)
-        self.test_btn.clicked.connect(self._on_test_output)
+        # Use press/release events instead of clicked
+        self.test_btn.pressed.connect(self._on_test_pressed)
+        self.test_btn.released.connect(self._on_test_released)
         self.test_btn.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(
@@ -230,7 +232,11 @@ class AudioWidget(QWidget):
                 );
             }
             QPushButton:pressed {
-                background: #0077aa;
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #2ed573,
+                    stop:1 #26de81
+                );
                 padding: 11px 9px 9px 11px;
             }
         """)
@@ -241,10 +247,21 @@ class AudioWidget(QWidget):
         layout.addWidget(group)
     
     def _on_test_output(self):
-        """Test selected output channel"""
+        """Test selected output channel (legacy - one shot)"""
         channel = self.channel_spinbox.value()
         logger.info(f"Testing output channel {channel}")
         self.audio_router.test_audio(channel, duration=1.0)
+    
+    def _on_test_pressed(self):
+        """Start continuous tone when button is pressed"""
+        channel = self.channel_spinbox.value()
+        logger.info(f"Starting continuous tone on channel {channel}")
+        self.audio_router.start_continuous_tone(channel)
+    
+    def _on_test_released(self):
+        """Stop continuous tone when button is released"""
+        logger.info("Stopping continuous tone")
+        self.audio_router.stop_continuous_tone()
     
     def update_routing_display(self, lines):
         """
