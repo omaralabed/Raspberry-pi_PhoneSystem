@@ -130,8 +130,9 @@ class LineWidget(QWidget):
         
         # Audio channel picker with modern styling
         self.channel_picker = QComboBox()
-        self.channel_picker.setMaximumWidth(90)
-        self.channel_picker.setMinimumWidth(90)
+        self.channel_picker.setMaximumWidth(125)
+        self.channel_picker.setMinimumWidth(125)
+        self.channel_picker.setMinimumHeight(45)
         self.channel_picker.addItem("🔇 None", 0)  # No output with icon
         for i in range(1, 9):
             self.channel_picker.addItem(f"🔊 {i}", i)
@@ -145,10 +146,10 @@ class LineWidget(QWidget):
                     stop:1 #2d3748
                 );
                 border: 2px solid rgba(255, 255, 255, 0.2);
-                border-radius: 6px;
-                padding: 6px 10px;
+                border-radius: 8px;
+                padding: 8px 12px;
                 color: white;
-                font-size: 12px;
+                font-size: 14px;
                 font-weight: bold;
                 font-family: 'Segoe UI';
             }
@@ -162,13 +163,13 @@ class LineWidget(QWidget):
             }
             QComboBox::drop-down {
                 border: none;
-                width: 20px;
+                width: 25px;
             }
             QComboBox::down-arrow {
                 image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid white;
+                border-left: 6px solid transparent;
+                border-right: 6px solid transparent;
+                border-top: 6px solid white;
                 margin-right: 5px;
             }
             QComboBox QAbstractItemView {
