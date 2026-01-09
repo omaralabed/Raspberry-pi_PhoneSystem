@@ -119,20 +119,6 @@ class MainWindow(QMainWindow):
         layout.setSpacing(10)
         layout.setContentsMargins(15, 15, 15, 15)
         
-        # Compact title with modern styling
-        title = QLabel("PHONE LINES")
-        title.setFont(QFont("Segoe UI", 12, QFont.Bold))
-        title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("""
-            QLabel {
-                color: #00d4ff;
-                padding: 6px;
-                background: rgba(0, 212, 255, 0.08);
-                border-radius: 6px;
-            }
-        """)
-        layout.addWidget(title, 0, 0, 1, 2)
-        
         # Create 8 line widgets (2 columns x 4 rows)
         self.line_widgets = []
         for i in range(8):
@@ -142,7 +128,7 @@ class MainWindow(QMainWindow):
             widget.hangup_clicked.connect(self._on_hangup_clicked)
             widget.audio_channel_changed.connect(self._on_audio_channel_changed)
             
-            row = 1 + (i // 2)
+            row = i // 2
             col = i % 2
             layout.addWidget(widget, row, col)
             
