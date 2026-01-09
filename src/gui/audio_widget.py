@@ -81,7 +81,7 @@ class AudioWidget(QWidget):
         channels_layout.addWidget(channels_title)
         
         # Show available lines in a nice box
-        self.available_label = QLabel("Unassigned: (checking...)")
+        self.available_label = QLabel("Unassigned Lines: (checking...)")
         self.available_label.setFont(QFont("Segoe UI", 9, QFont.Bold))
         self.available_label.setAlignment(Qt.AlignCenter)
         self.available_label.setStyleSheet("""
@@ -286,7 +286,7 @@ class AudioWidget(QWidget):
         # Update available lines label
         if available_lines:
             lines_str = ", ".join([f"L{lid}" for lid in available_lines])
-            self.available_label.setText(f"⚪ Unassigned: {lines_str}")
+            self.available_label.setText(f"⚪ Unassigned Lines: {lines_str}")
         else:
             self.available_label.setText("✅ All lines assigned to outputs")
         
