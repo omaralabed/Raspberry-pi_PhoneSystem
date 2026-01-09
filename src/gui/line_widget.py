@@ -80,12 +80,14 @@ class LineWidget(QWidget):
         # Top row: Line number and audio label
         top_row = QHBoxLayout()
         top_row.setSpacing(10)
+        top_row.setContentsMargins(0, 0, 0, 0)
         
         self.line_label = QLabel(f"Line {self.line.line_id}")
         self.line_label.setFont(QFont("Segoe UI", 14, QFont.Bold))
         self.line_label.setStyleSheet("""
             QLabel {
                 color: #00d4ff;
+                padding: 2px 5px;
             }
         """)
         top_row.addWidget(self.line_label)
@@ -94,15 +96,15 @@ class LineWidget(QWidget):
         
         self.audio_label = QLabel("IFB")
         self.audio_label.setFont(QFont("Segoe UI", 9, QFont.Bold))
-        self.audio_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.audio_label.setAlignment(Qt.AlignCenter)
         self.audio_label.setStyleSheet("""
             QLabel {
                 color: #4ecdc4;
                 background: rgba(78, 205, 196, 0.2);
                 padding: 5px 10px;
                 border-radius: 5px;
-                min-width: 80px;
-                max-width: 100px;
+                min-width: 70px;
+                max-width: 90px;
             }
         """)
         top_row.addWidget(self.audio_label)
@@ -339,8 +341,8 @@ class LineWidget(QWidget):
                     background: rgba(136, 136, 136, 0.15);
                     padding: 5px 10px;
                     border-radius: 5px;
-                    min-width: 80px;
-                    max-width: 100px;
+                    min-width: 70px;
+                    max-width: 90px;
                 }
             """)
         else:
@@ -362,7 +364,7 @@ class LineWidget(QWidget):
                     padding: 5px 10px;
                     border-radius: 5px;
                     font-weight: bold;
-                    min-width: 80px;
-                    max-width: 100px;
+                    min-width: 70px;
+                    max-width: 90px;
                 }}
             """)
