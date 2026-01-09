@@ -44,100 +44,172 @@ class LineWidget(QWidget):
     
     def _create_ui(self):
         """Create line widget UI"""
-        self.setMinimumHeight(80)
-        self.setMaximumHeight(100)
+        self.setMinimumHeight(90)
+        self.setMaximumHeight(120)
         
-        # Main frame
+        # Main frame with modern styling
         self.frame = QFrame(self)
-        self.frame.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
-        self.frame.setLineWidth(2)
+        self.frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(255, 255, 255, 0.08),
+                    stop:1 rgba(255, 255, 255, 0.04)
+                );
+                border: 2px solid rgba(255, 255, 255, 0.15);
+                border-radius: 10px;
+            }
+            QFrame:hover {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(0, 212, 255, 0.2),
+                    stop:1 rgba(0, 212, 255, 0.1)
+                );
+                border: 2px solid rgba(0, 212, 255, 0.4);
+            }
+        """)
         
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.frame)
         
         frame_layout = QVBoxLayout(self.frame)
-        frame_layout.setContentsMargins(5, 5, 5, 5)
-        frame_layout.setSpacing(3)
+        frame_layout.setContentsMargins(12, 10, 12, 10)
+        frame_layout.setSpacing(6)
         
-        # Top row: Line number and status
+        # Top row: Line number and audio label
         top_row = QHBoxLayout()
         
-        self.line_label = QLabel(f"Line {self.line.line_id}")
-        self.line_label.setFont(QFont("Arial", 12, QFont.Bold))
+        self.line_label = QLabel(f"LINE {self.line.line_id}")
+        self.line_label.setFont(QFont("Segoe UI", 13, QFont.Bold))
+        self.line_label.setStyleSheet("""
+            QLabel {
+                color: #00d4ff;
+                letter-spacing: 1px;
+            }
+        """)
         top_row.addWidget(self.line_label)
         
         top_row.addStretch()
         
         self.audio_label = QLabel("IFB")
-        self.audio_label.setFont(QFont("Arial", 10, QFont.Bold))
+        self.audio_label.setFont(QFont("Segoe UI", 10, QFont.Bold))
         self.audio_label.setAlignment(Qt.AlignRight)
+        self.audio_label.setStyleSheet("""
+            QLabel {
+                color: #4ecdc4;
+                background: rgba(78, 205, 196, 0.2);
+                padding: 4px 8px;
+                border-radius: 5px;
+            }
+        """)
         top_row.addWidget(self.audio_label)
         
         frame_layout.addLayout(top_row)
         
-        # Status label
+        # Status label with modern font
         self.status_label = QLabel("Available")
-        self.status_label.setFont(QFont("Arial", 10))
+        self.status_label.setFont(QFont("Segoe UI", 11))
         self.status_label.setAlignment(Qt.AlignLeft)
+        self.status_label.setStyleSheet("""
+            QLabel {
+                color: #95e1d3;
+                padding: 2px 0px;
+            }
+        """)
         frame_layout.addWidget(self.status_label)
         
         # Button row
         button_row = QHBoxLayout()
-        button_row.setSpacing(5)
+        button_row.setSpacing(8)
         
-        # Audio channel picker
+        # Audio channel picker with modern styling
         self.channel_picker = QComboBox()
-        self.channel_picker.setMaximumWidth(80)
-        self.channel_picker.setMinimumWidth(80)
-        self.channel_picker.addItem("None", 0)  # No output
+        self.channel_picker.setMaximumWidth(90)
+        self.channel_picker.setMinimumWidth(90)
+        self.channel_picker.addItem("🔇 None", 0)  # No output with icon
         for i in range(1, 9):
-            self.channel_picker.addItem(f"{i}", i)
+            self.channel_picker.addItem(f"🔊 {i}", i)
         self.channel_picker.setCurrentIndex(1)  # Default to channel 1
         self.channel_picker.currentIndexChanged.connect(self._on_channel_changed)
         self.channel_picker.setStyleSheet("""
             QComboBox {
-                background-color: #505050;
-                border: 1px solid #666;
-                border-radius: 3px;
-                padding: 2px 5px;
+                background: qlineargradient(
+                    x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #4a5568,
+                    stop:1 #2d3748
+                );
+                border: 2px solid rgba(255, 255, 255, 0.2);
+                border-radius: 6px;
+                padding: 6px 10px;
                 color: white;
-                font-size: 14px;
+                font-size: 12px;
                 font-weight: bold;
+                font-family: 'Segoe UI';
             }
             QComboBox:hover {
-                background-color: #606060;
+                background: qlineargradient(
+                    x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #5a6578,
+                    stop:1 #3d4758
+                );
+                border: 2px solid rgba(0, 212, 255, 0.5);
             }
             QComboBox::drop-down {
                 border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid white;
+                margin-right: 5px;
             }
             QComboBox QAbstractItemView {
-                background-color: #404040;
+                background-color: #2d3748;
                 color: white;
-                selection-background-color: #2a5a8a;
-                border: 1px solid #666;
-                font-size: 13px;
+                selection-background-color: #00d4ff;
+                selection-color: #1a1a2e;
+                border: 2px solid rgba(0, 212, 255, 0.3);
+                border-radius: 6px;
+                padding: 5px;
+                font-size: 12px;
             }
         """)
         button_row.addWidget(self.channel_picker)
         
         button_row.addStretch()
         
-        # Hangup button
-        self.hangup_btn = QPushButton("Hang Up")
-        self.hangup_btn.setFont(QFont("Arial", 9, QFont.Bold))
+        # Hangup button with modern gradient
+        self.hangup_btn = QPushButton("✖ HANGUP")
+        self.hangup_btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
         self.hangup_btn.setVisible(False)
         self.hangup_btn.clicked.connect(self._on_hangup)
         self.hangup_btn.setStyleSheet("""
             QPushButton {
-                background-color: #8a2a2a;
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #ff6b6b,
+                    stop:1 #ee5a6f
+                );
                 color: white;
                 border: none;
-                border-radius: 3px;
-                padding: 3px 8px;
+                border-radius: 6px;
+                padding: 8px 15px;
+                font-weight: bold;
+                letter-spacing: 1px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #ff5252,
+                    stop:1 #dd4a5f
+                );
             }
             QPushButton:pressed {
-                background-color: #6a1a1a;
+                background: #cc3e3e;
+                padding: 9px 14px 7px 16px;
             }
         """)
         button_row.addWidget(self.hangup_btn)
@@ -195,36 +267,95 @@ class LineWidget(QWidget):
         self._update_style()
     
     def _update_style(self):
-        """Update widget styling based on state"""
-        # Base style
+        """Update widget styling based on state with modern colors"""
+        # State-based gradient colors
         if self.is_selected:
-            bg_color = "#2a5a8a"
-            border_color = "#4a7aaa"
+            gradient = """
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(0, 212, 255, 0.3),
+                    stop:1 rgba(0, 212, 255, 0.15)
+                );
+                border: 3px solid #00d4ff;
+                box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            """
         elif self.line.state == LineState.IDLE:
-            bg_color = "#3a3a3a"
-            border_color = "#555555"
+            gradient = """
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(255, 255, 255, 0.08),
+                    stop:1 rgba(255, 255, 255, 0.04)
+                );
+                border: 2px solid rgba(255, 255, 255, 0.15);
+            """
         elif self.line.state == LineState.CONNECTED:
-            bg_color = "#2a6a2a"
-            border_color = "#4a8a4a"
+            gradient = """
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(46, 213, 115, 0.3),
+                    stop:1 rgba(46, 213, 115, 0.15)
+                );
+                border: 2px solid #2ed573;
+                box-shadow: 0 0 15px rgba(46, 213, 115, 0.3);
+            """
         elif self.line.state in [LineState.DIALING, LineState.RINGING]:
-            bg_color = "#6a6a2a"
-            border_color = "#8a8a4a"
-        else:
-            bg_color = "#6a2a2a"
-            border_color = "#8a4a4a"
+            gradient = """
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(255, 159, 26, 0.3),
+                    stop:1 rgba(255, 159, 26, 0.15)
+                );
+                border: 2px solid #ff9f1a;
+                box-shadow: 0 0 15px rgba(255, 159, 26, 0.3);
+            """
+        else:  # ERROR or DISCONNECTED
+            gradient = """
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(255, 107, 107, 0.3),
+                    stop:1 rgba(255, 107, 107, 0.15)
+                );
+                border: 2px solid #ff6b6b;
+            """
         
         self.frame.setStyleSheet(f"""
             QFrame {{
-                background-color: {bg_color};
-                border: 2px solid {border_color};
-                border-radius: 5px;
+                {gradient}
+                border-radius: 10px;
+            }}
+            QFrame:hover {{
+                border: 2px solid rgba(0, 212, 255, 0.6);
             }}
         """)
         
-        # Audio label color - cycle through colors for different outputs
+        # Audio label color - vibrant colors for different outputs
         if self.line.audio_output.channel == 0:
-            self.audio_label.setStyleSheet("color: #888; font-weight: bold;")  # Gray for no output
+            self.audio_label.setStyleSheet("""
+                QLabel {
+                    color: #888;
+                    background: rgba(136, 136, 136, 0.2);
+                    padding: 4px 8px;
+                    border-radius: 5px;
+                }
+            """)
         else:
-            colors = ['#4af', '#fa4', '#4f4', '#f4f', '#ff4', '#4ff', '#f44', '#44f']
-            color_idx = (self.line.audio_output.channel - 1) % len(colors)
-            self.audio_label.setStyleSheet(f"color: {colors[color_idx]}; font-weight: bold;")
+            colors = [
+                '#00d4ff',  # Cyan
+                '#ff9f1a',  # Orange  
+                '#2ed573',  # Green
+                '#ff6b6b',  # Red
+                '#ffd93d',  # Yellow
+                '#a29bfe',  # Purple
+                '#fd79a8',  # Pink
+                '#6c5ce7'   # Violet
+            ]
+            color = colors[(self.line.audio_output.channel - 1) % len(colors)]
+            self.audio_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {color};
+                    background: rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.25);
+                    padding: 4px 8px;
+                    border-radius: 5px;
+                    font-weight: bold;
+                }}
+            """)

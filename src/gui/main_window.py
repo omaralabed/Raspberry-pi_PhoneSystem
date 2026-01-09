@@ -62,17 +62,25 @@ class MainWindow(QMainWindow):
         logger.info("Main window initialized")
     
     def _apply_theme(self):
-        """Apply dark theme for production environment"""
-        palette = QPalette()
-        palette.setColor(QPalette.Window, QColor(30, 30, 30))
-        palette.setColor(QPalette.WindowText, QColor(220, 220, 220))
-        palette.setColor(QPalette.Base, QColor(45, 45, 45))
-        palette.setColor(QPalette.AlternateBase, QColor(50, 50, 50))
-        palette.setColor(QPalette.Button, QColor(60, 60, 60))
-        palette.setColor(QPalette.ButtonText, QColor(220, 220, 220))
-        palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-        palette.setColor(QPalette.HighlightedText, Qt.white)
-        self.setPalette(palette)
+        """Apply modern gradient theme"""
+        # Set main window background with gradient
+        self.setStyleSheet("""
+            QMainWindow {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #1a1a2e,
+                    stop:0.5 #16213e,
+                    stop:1 #0f3460
+                );
+            }
+            QLabel {
+                color: #eaeaea;
+                font-family: 'Segoe UI', Arial, sans-serif;
+            }
+            QFrame {
+                border-radius: 8px;
+            }
+        """)
     
     def _create_ui(self):
         """Create main UI layout"""
@@ -94,15 +102,36 @@ class MainWindow(QMainWindow):
     def _create_line_panel(self) -> QWidget:
         """Create panel with 8 line status widgets"""
         panel = QFrame()
-        panel.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+        panel.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(255, 255, 255, 0.05),
+                    stop:1 rgba(255, 255, 255, 0.02)
+                );
+                border: 2px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                padding: 15px;
+            }
+        """)
         
         layout = QGridLayout(panel)
-        layout.setSpacing(5)
+        layout.setSpacing(10)
+        layout.setContentsMargins(15, 15, 15, 15)
         
-        # Title
-        title = QLabel("Phone Lines")
-        title.setFont(QFont("Arial", 14, QFont.Bold))
+        # Title with modern styling
+        title = QLabel("📞 PHONE LINES")
+        title.setFont(QFont("Segoe UI", 16, QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("""
+            QLabel {
+                color: #00d4ff;
+                padding: 10px;
+                background: rgba(0, 212, 255, 0.1);
+                border-radius: 8px;
+                letter-spacing: 2px;
+            }
+        """)
         layout.addWidget(title, 0, 0, 1, 2)
         
         # Create 8 line widgets (2 columns x 4 rows)
@@ -125,16 +154,40 @@ class MainWindow(QMainWindow):
     def _create_control_panel(self) -> QWidget:
         """Create dialer and audio control panel"""
         panel = QFrame()
-        panel.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+        panel.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(255, 255, 255, 0.05),
+                    stop:1 rgba(255, 255, 255, 0.02)
+                );
+                border: 2px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                padding: 15px;
+            }
+        """)
         
         layout = QVBoxLayout(panel)
-        layout.setSpacing(10)
+        layout.setSpacing(15)
+        layout.setContentsMargins(15, 15, 15, 15)
         
-        # Selected line display
+        # Selected line display with modern styling
         self.selected_line_label = QLabel("Select a line to dial")
-        self.selected_line_label.setFont(QFont("Arial", 12, QFont.Bold))
+        self.selected_line_label.setFont(QFont("Segoe UI", 13, QFont.Bold))
         self.selected_line_label.setAlignment(Qt.AlignCenter)
-        self.selected_line_label.setStyleSheet("background-color: #3a3a3a; padding: 10px;")
+        self.selected_line_label.setStyleSheet("""
+            QLabel {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #ff6b6b,
+                    stop:1 #ee5a6f
+                );
+                color: white;
+                padding: 15px;
+                border-radius: 10px;
+                font-weight: bold;
+            }
+        """)
         layout.addWidget(self.selected_line_label)
         
         # Dialer widget
