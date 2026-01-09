@@ -41,6 +41,7 @@ class AudioWidget(QWidget):
         # Group box
         group = QGroupBox("Audio Routing")
         group.setFont(QFont("Arial", 11, QFont.Bold))
+        group.setStyleSheet("QGroupBox { color: white; }")
         group_layout = QVBoxLayout(group)
         group_layout.setSpacing(5)
         
@@ -49,6 +50,7 @@ class AudioWidget(QWidget):
         info_label.setFont(QFont("Arial", 9))
         info_label.setAlignment(Qt.AlignCenter)
         info_label.setWordWrap(True)
+        info_label.setStyleSheet("color: white;")
         group_layout.addWidget(info_label)
         
         # Output channels display
@@ -62,6 +64,7 @@ class AudioWidget(QWidget):
         channels_title = QLabel("Available Outputs")
         channels_title.setFont(QFont("Arial", 10, QFont.Bold))
         channels_title.setAlignment(Qt.AlignCenter)
+        channels_title.setStyleSheet("color: white;")
         channels_layout.addWidget(channels_title)
         
         # Show outputs 1-8
@@ -84,12 +87,14 @@ class AudioWidget(QWidget):
         test_title = QLabel("Test Audio Output")
         test_title.setFont(QFont("Arial", 9, QFont.Bold))
         test_title.setAlignment(Qt.AlignCenter)
+        test_title.setStyleSheet("color: white;")
         test_layout.addWidget(test_title)
         
         # Channel selector
         selector_layout = QHBoxLayout()
         selector_label = QLabel("Channel:")
         selector_label.setFont(QFont("Arial", 9))
+        selector_label.setStyleSheet("color: white;")
         selector_layout.addWidget(selector_label)
         
         self.channel_spinbox = QSpinBox()
