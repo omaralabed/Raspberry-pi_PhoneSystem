@@ -185,11 +185,14 @@ class LineWidget(QWidget):
         """)
         button_row.addWidget(self.channel_picker)
         
+        button_row.addSpacing(10)
+        
         # Hangup button with modern gradient - bigger and more prominent
-        self.hangup_btn = QPushButton("📞 HANG UP")
-        self.hangup_btn.setFont(QFont("Segoe UI", 12, QFont.Bold))
-        self.hangup_btn.setMinimumHeight(50)
-        self.hangup_btn.setMinimumWidth(130)
+        self.hangup_btn = QPushButton("HANG UP")
+        self.hangup_btn.setFont(QFont("Segoe UI", 11, QFont.Bold))
+        self.hangup_btn.setMinimumHeight(45)
+        self.hangup_btn.setMinimumWidth(100)
+        self.hangup_btn.setMaximumWidth(120)
         self.hangup_btn.setVisible(True)  # Always visible for testing
         self.hangup_btn.clicked.connect(self._on_hangup)
         self.hangup_btn.setStyleSheet("""
