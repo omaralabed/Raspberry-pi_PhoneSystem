@@ -80,7 +80,7 @@ class DialerWidget(QWidget):
         action_layout.setSpacing(8)
         
         # Backspace button
-        self.backspace_btn = QPushButton("⌫")
+        self.backspace_btn = QPushButton("Delete")
         self.backspace_btn.setMinimumHeight(55)
         self.backspace_btn.setFont(QFont("Segoe UI", 18, QFont.Bold))
         self.backspace_btn.setStyleSheet("""
@@ -111,7 +111,7 @@ class DialerWidget(QWidget):
         action_layout.addWidget(self.backspace_btn)
         
         # Clear button
-        self.clear_btn = QPushButton("✖")
+        self.clear_btn = QPushButton("Clear")
         self.clear_btn.setMinimumHeight(55)
         self.clear_btn.setFont(QFont("Segoe UI", 18, QFont.Bold))
         self.clear_btn.setStyleSheet("""
