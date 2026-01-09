@@ -44,8 +44,8 @@ class LineWidget(QWidget):
     
     def _create_ui(self):
         """Create line widget UI"""
-        self.setMinimumHeight(130)
-        self.setMaximumHeight(160)
+        self.setMinimumHeight(160)
+        self.setMaximumHeight(200)
         
         # Main frame with modern styling
         self.frame = QFrame(self)
