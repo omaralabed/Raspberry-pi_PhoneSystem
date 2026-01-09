@@ -63,7 +63,7 @@ class AudioWidget(QWidget):
         channels_layout.setContentsMargins(8, 8, 8, 8)
         channels_layout.setSpacing(3)
         
-        channels_title = QLabel("Available Outputs")
+        channels_title = QLabel("Available Lines")
         channels_title.setFont(QFont("Arial", 10, QFont.Bold))
         channels_title.setAlignment(Qt.AlignCenter)
         channels_title.setStyleSheet("color: white;")
