@@ -1,7 +1,7 @@
 [Unit]
 Description=Raspberry Pi Phone System - IFB/PL
-After=network.target sound.target pulseaudio.service
-Wants=pulseaudio.service
+After=network.target sound.target
+DefaultDependencies=no
 
 [Service]
 Type=simple
@@ -9,12 +9,11 @@ User=procomm
 Group=procomm
 WorkingDirectory=/home/procomm/ProComm
 Environment="QT_QPA_PLATFORM=linuxfb"
-Environment="DISPLAY=:0"
-Environment="XAUTHORITY=/home/procomm/.Xauthority"
-Environment="PULSE_SERVER=unix:/run/user/1000/pulse/native"
+Environment="QT_QPA_FB_DRM=1"
+Environment="QT_QPA_EGLFS_ALWAYS_SET_MODE=1"
 ExecStart=/usr/bin/python3 /home/procomm/ProComm/main.py
-Restart=on-failure
-RestartSec=10
+Restart=always
+RestartSec=5
 StandardOutput=append:/home/procomm/ProComm/logs/systemd.log
 StandardError=append:/home/procomm/ProComm/logs/systemd.log
 
@@ -23,5 +22,8 @@ LimitRTPRIO=95
 LimitMEMLOCK=infinity
 Nice=-10
 
+# Ensure framebuffer access
+SupplementaryGroups=video audio
+
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target
