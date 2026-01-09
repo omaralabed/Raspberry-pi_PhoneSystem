@@ -74,7 +74,7 @@ class AudioWidget(QWidget):
         channels_layout.setSpacing(8)
         
         # Title
-        channels_title = QLabel("📊 Available Lines")
+        channels_title = QLabel("📊 Available Outputs")
         channels_title.setFont(QFont("Segoe UI", 11, QFont.Bold))
         channels_title.setAlignment(Qt.AlignCenter)
         channels_title.setStyleSheet("color: #00d4ff; padding: 5px;")
