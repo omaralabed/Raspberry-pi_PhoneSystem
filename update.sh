@@ -56,9 +56,7 @@ ssh -t "${PI_USER}@${PI_HOST}" "
 echo "✅ Remote deployment complete."
 echo ""
 
-
-# --- Final Status Check ---
-echo "� Step 3/3: Verifying service status on Pi..."
-ssh "${PI_USER}@${PI_HOST}" "sudo systemctl status ${SERVICE_NAME} --no-pager"
-echo ""
 echo "🎉🎉🎉 DEPLOYMENT FINISHED! 🎉🎉🎉"
+echo ""
+echo "To check service status, run:"
+echo "  ssh ${PI_USER}@${PI_HOST} 'systemctl status ${SERVICE_NAME} --no-pager'"
