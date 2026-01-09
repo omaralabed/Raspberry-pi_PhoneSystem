@@ -192,7 +192,7 @@ class LineWidget(QWidget):
         self.hangup_btn.setMaximumHeight(40)
         self.hangup_btn.setMinimumWidth(110)
         self.hangup_btn.setMaximumWidth(130)
-        self.hangup_btn.setVisible(True)  # Always visible
+        self.hangup_btn.setEnabled(False)  # Start disabled
         self.hangup_btn.clicked.connect(self._on_hangup)
         self.hangup_btn.setStyleSheet("""
             QPushButton {
@@ -219,6 +219,11 @@ class LineWidget(QWidget):
             QPushButton:pressed {
                 background: #cc6600;
                 padding: 9px 14px 7px 16px;
+            }
+            QPushButton:disabled {
+                background: #4a4a4a;
+                color: #888888;
+                border: 2px solid #666666;
             }
         """)
         button_row.addWidget(self.hangup_btn)
@@ -269,8 +274,8 @@ class LineWidget(QWidget):
                 break
         self.channel_picker.blockSignals(False)
         
-        # Show/hide hangup button - DISABLED: keep always visible
-        # self.hangup_btn.setVisible(self.line.is_active())
+        # Enable/disable hangup button based on line state
+        self.hangup_btn.setEnabled(self.line.is_active())
         
         # Update colors
         self._update_style()
