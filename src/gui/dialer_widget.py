@@ -262,10 +262,11 @@ class DialerWidget(QWidget):
     
     def _on_digit_pressed(self, digit: str):
         """Handle number button press"""
+        logger.info(f"Digit pressed: {digit}")
         self.phone_number += digit
         self.number_display.setText(self.phone_number)
         self.call_btn.setEnabled(len(self.phone_number) > 0)
-        logger.debug(f"Digit pressed: {digit}, number: {self.phone_number}")
+        logger.info(f"Number now: {self.phone_number}")
     
     def _on_backspace(self):
         """Remove last digit"""

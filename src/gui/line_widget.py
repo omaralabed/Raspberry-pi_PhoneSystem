@@ -229,16 +229,12 @@ class LineWidget(QWidget):
         button_row.addWidget(self.hangup_btn)
         
         frame_layout.addLayout(button_row)
-        
-        # Make frame clickable - but don't eat child widget events
-        self.frame.mouseReleaseEvent = self._on_click
     
-    def _on_click(self, event):
-        """Handle click on line widget"""
-        # Only emit click if we're clicking on the frame background, not child widgets
-        child = self.frame.childAt(event.pos())
-        if child is None or isinstance(child, QLabel):
-            self.clicked.emit(self.line.line_id)
+    def mousePressEvent(self, event):
+        """Handle mouse press on the widget"""
+        logger.info(f"Line {self.line.line_id} clicked")
+        self.clicked.emit(self.line.line_id)
+        event.accept()
     
     def _on_hangup(self):
         """Handle hangup button click"""
