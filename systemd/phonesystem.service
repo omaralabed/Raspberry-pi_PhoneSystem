@@ -7,6 +7,7 @@ After=local-fs.target
 Type=simple
 User=procomm
 Group=procomm
+SupplementaryGroups=input video tty
 WorkingDirectory=/home/procomm/ProComm
 TTYPath=/dev/tty1
 StandardInput=tty
