@@ -6,7 +6,7 @@ Main Window - TouchScreen GUI
 import sys
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QGridLayout, QPushButton, QLabel, QFrame, QMessageBox, QComboBox)
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QEvent, QCoreApplication
 from PyQt5.QtGui import QFont, QPalette, QColor
 import logging
 
@@ -64,7 +64,10 @@ class MainWindow(QMainWindow):
         self.cursor_hide_timer.timeout.connect(self._hide_cursor)
         self.cursor_hide_timer.setSingleShot(True)
         self.cursor_visible = True
-        self.setMouseTracking(True)  # Enable mouse tracking for this widget
+        
+        # Install application-wide event filter to catch all mouse movements
+        QCoreApplication.instance().installEventFilter(self)
+        logger.info("Cursor auto-hide enabled with application-wide event filter")
         
         logger.info("Main window initialized")
     
@@ -444,26 +447,30 @@ class MainWindow(QMainWindow):
         
         msg_box.exec_()
     
-    def mouseMoveEvent(self, event):
-        """Handle mouse movement to show cursor and restart hide timer"""
-        self._show_cursor()
-        self.cursor_hide_timer.start(3000)  # Hide after 3 seconds of inactivity
-        super().mouseMoveEvent(event)
+    def eventFilter(self, obj, event):
+        """Application-wide event filter to detect mouse movement"""
+        if event.type() == QEvent.MouseMove:
+            self._show_cursor()
+            self.cursor_hide_timer.start(3000)  # Hide after 3 seconds
+        return super().eventFilter(obj, event)
     
     def _show_cursor(self):
         """Show the mouse cursor"""
         if not self.cursor_visible:
-            self.setCursor(Qt.ArrowCursor)
+            QCoreApplication.instance().restoreOverrideCursor()
             self.cursor_visible = True
+            logger.info("Mouse cursor shown")
     
     def _hide_cursor(self):
         """Hide the mouse cursor after inactivity"""
         if self.cursor_visible:
-            self.setCursor(Qt.BlankCursor)
+            QCoreApplication.instance().setOverrideCursor(Qt.BlankCursor)
             self.cursor_visible = False
+            logger.info("Mouse cursor hidden")
     
     def closeEvent(self, event):
         """Handle window close"""
         self.update_timer.stop()
         self.cursor_hide_timer.stop()
+        QCoreApplication.instance().removeEventFilter(self)
         event.accept()
