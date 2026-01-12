@@ -17,7 +17,8 @@ Environment="QT_QPA_PLATFORM=eglfs"
 Environment="QT_QPA_EGLFS_PHYSICAL_WIDTH=217"
 Environment="QT_QPA_EGLFS_PHYSICAL_HEIGHT=136"
 Environment="QT_QPA_FONTDIR=/usr/share/fonts"
-Environment="QT_LOGGING_RULES=qt.qpa.input*=true"
+Environment="QT_LOGGING_RULES=*=true"
+Environment="QT_QPA_EGLFS_HIDECURSOR=0"
 ExecStart=/usr/bin/python3 /home/procomm/ProComm/main.py
 Restart=always
 RestartSec=5

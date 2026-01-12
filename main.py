@@ -9,7 +9,7 @@ import os
 import logging
 import signal
 from PyQt5.QtWidgets import QApplication, QMessageBox
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal, Qt
 
 from src.sip_engine import SIPEngine
 from src.audio_router import AudioRouter
@@ -45,6 +45,10 @@ class PhoneSystemApp:
         # Initialize Qt application
         self.app = QApplication(sys.argv)
         self.app.setApplicationName("Phone System")
+        
+        # Enable mouse cursor
+        self.app.setOverrideCursor(Qt.ArrowCursor)
+        self.app.restoreOverrideCursor()  # Reset to default
         
         # Initialize components
         self.sip_engine = None
