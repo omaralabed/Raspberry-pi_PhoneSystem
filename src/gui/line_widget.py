@@ -279,6 +279,10 @@ class LineWidget(QWidget):
             }
         """)
         
+        # Position the dialog below this line widget
+        widget_pos = self.mapToGlobal(self.rect().bottomLeft())
+        msg_box.move(widget_pos.x(), widget_pos.y() + 10)
+        
         # Show dialog and check response
         msg_box.exec_()
         
