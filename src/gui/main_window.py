@@ -124,7 +124,6 @@ class MainWindow(QMainWindow):
         for i in range(8):
             line = self.sip_engine.get_line(i + 1)
             widget = LineWidget(line, self)
-            widget.clicked.connect(self._on_line_selected)
             widget.hangup_clicked.connect(self._on_hangup_clicked)
             widget.audio_channel_changed.connect(self._on_audio_channel_changed)
             
