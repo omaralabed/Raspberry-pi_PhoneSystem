@@ -239,33 +239,52 @@ class BaresipProcess:
             return False
     
     def hangup(self) -> bool:
-        """Hang up current call"""
+        """Hang up current call by restarting baresip process"""
         logger.info(f"[BaresipProcess] Line {self.line_id}: hangup() called")
         
-        if not self.running or not self.process or not self.process.stdin:
-            logger.warning(f"Line {self.line_id}: Cannot hangup - process not running or no stdin")
-            return False
-        
-        if self.process.stdin.closed:
-            logger.warning(f"Line {self.line_id}: Baresip stdin already closed")
+        if not self.running or not self.process:
+            logger.warning(f"Line {self.line_id}: Cannot hangup - process not running")
             return False
         
         try:
-            logger.info(f"Line {self.line_id}: Writing '/ua hangup' command to baresip stdin")
-            self.process.stdin.write("/ua hangup\n")
-            self.process.stdin.flush()
+            old_pid = self.process.pid
+            logger.info(f"Line {self.line_id}: Terminating baresip process (PID {old_pid}) to force hangup")
             
-            logger.info(f"Line {self.line_id}: Hangup command sent successfully")
-            return True
-            
-        except (BrokenPipeError, OSError) as e:
-            logger.error(f"Line {self.line_id}: Baresip process died during hangup: {e}")
+            # Stop the monitor thread gracefully
             self.running = False
-            self.phone_line.reset()  # Clean up state
-            return False
+            
+            # Terminate the baresip process
+            self.process.terminate()
+            
+            # Wait for process to end (with timeout)
+            try:
+                self.process.wait(timeout=2)
+                logger.info(f"Line {self.line_id}: Process {old_pid} terminated cleanly")
+            except subprocess.TimeoutExpired:
+                logger.warning(f"Line {self.line_id}: Process didn't terminate, killing it")
+                self.process.kill()
+                self.process.wait()
+                logger.info(f"Line {self.line_id}: Process {old_pid} killed")
+            
+            # Reset phone line state
+            self.phone_line.reset()
+            logger.info(f"Line {self.line_id}: Line state reset to IDLE")
+            
+            # Restart baresip process (this line only - other lines unaffected)
+            logger.info(f"Line {self.line_id}: Restarting baresip process for this line only")
+            success = self.start()
+            
+            if success:
+                logger.info(f"Line {self.line_id}: Baresip restarted successfully (new PID {self.process.pid})")
+            else:
+                logger.error(f"Line {self.line_id}: Failed to restart baresip")
+            
+            return success
+            
         except Exception as e:
             logger.error(f"Line {self.line_id}: Failed to hangup: {e}")
-            self.phone_line.reset()  # Clean up state
+            self.running = False
+            self.phone_line.reset()
             return False
     
     def stop(self) -> None:
