@@ -59,6 +59,13 @@ class MainWindow(QMainWindow):
         self.update_timer.timeout.connect(self._update_display)
         self.update_timer.start(1000)  # Update every second
         
+        # Mouse cursor auto-hide setup
+        self.cursor_hide_timer = QTimer()
+        self.cursor_hide_timer.timeout.connect(self._hide_cursor)
+        self.cursor_hide_timer.setSingleShot(True)
+        self.cursor_visible = True
+        self.setMouseTracking(True)  # Enable mouse tracking for this widget
+        
         logger.info("Main window initialized")
     
     def _apply_theme(self):
@@ -437,7 +444,26 @@ class MainWindow(QMainWindow):
         
         msg_box.exec_()
     
+    def mouseMoveEvent(self, event):
+        """Handle mouse movement to show cursor and restart hide timer"""
+        self._show_cursor()
+        self.cursor_hide_timer.start(3000)  # Hide after 3 seconds of inactivity
+        super().mouseMoveEvent(event)
+    
+    def _show_cursor(self):
+        """Show the mouse cursor"""
+        if not self.cursor_visible:
+            self.setCursor(Qt.ArrowCursor)
+            self.cursor_visible = True
+    
+    def _hide_cursor(self):
+        """Hide the mouse cursor after inactivity"""
+        if self.cursor_visible:
+            self.setCursor(Qt.BlankCursor)
+            self.cursor_visible = False
+    
     def closeEvent(self, event):
         """Handle window close"""
         self.update_timer.stop()
+        self.cursor_hide_timer.stop()
         event.accept()
