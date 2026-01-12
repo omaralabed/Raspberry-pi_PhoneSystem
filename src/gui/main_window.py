@@ -237,7 +237,7 @@ class MainWindow(QMainWindow):
         self.line_selector.clear()
         
         # Add default option
-        self.line_selector.addItem("Select a line to dial...", None)
+        self.line_selector.addItem("Select a line...", None)
         
         # Add available lines
         for line_id in range(1, 9):
@@ -424,6 +424,10 @@ class MainWindow(QMainWindow):
                 background-color: #3a3a3a;
             }
         """)
+        
+        # Position the dialog below the line selector dropdown
+        selector_pos = self.line_selector.mapToGlobal(self.line_selector.rect().bottomLeft())
+        msg_box.move(selector_pos.x(), selector_pos.y() + 10)
         
         msg_box.exec_()
     
