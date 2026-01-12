@@ -16,6 +16,7 @@ Environment="QT_QPA_PLATFORM=linuxfb:/dev/fb0"
 Environment="QT_QPA_FB_FORCE_FULLSCREEN=1"
 Environment="QT_QPA_FONTDIR=/usr/share/fonts"
 Environment="QT_LOGGING_RULES=qt.qpa.*=false"
+Environment="QT_QPA_EVDEV_MOUSE_PARAMETERS=/dev/input/event0"
 ExecStart=/usr/bin/python3 /home/procomm/ProComm/main.py
 Restart=always
 RestartSec=5
