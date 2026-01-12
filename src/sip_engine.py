@@ -240,7 +240,10 @@ class BaresipProcess:
     
     def hangup(self) -> bool:
         """Hang up current call"""
+        logger.info(f"[BaresipProcess] Line {self.line_id}: hangup() called")
+        
         if not self.running or not self.process or not self.process.stdin:
+            logger.warning(f"Line {self.line_id}: Cannot hangup - process not running or no stdin")
             return False
         
         if self.process.stdin.closed:
@@ -248,10 +251,11 @@ class BaresipProcess:
             return False
         
         try:
+            logger.info(f"Line {self.line_id}: Writing '/hangup' command to baresip stdin")
             self.process.stdin.write("/hangup\n")
             self.process.stdin.flush()
             
-            logger.info(f"Line {self.line_id}: Sending hangup")
+            logger.info(f"Line {self.line_id}: Hangup command sent successfully")
             return True
             
         except (BrokenPipeError, OSError) as e:
@@ -450,7 +454,10 @@ class SIPEngine:
     
     def hangup_call(self, line_id: int) -> bool:
         """Hang up call on specified line"""
+        logger.info(f"[SIPEngine] hangup_call() called for line {line_id}")
+        
         if line_id < 1 or line_id > self.num_lines:
+            logger.error(f"Invalid line_id: {line_id}")
             return False
         
         # Verify the line and baresip process exist
@@ -462,9 +469,10 @@ class SIPEngine:
         baresip = self.baresip_processes[line_id - 1]
         
         if not line.is_active():
-            logger.warning(f"Line {line_id}: No active call")
+            logger.warning(f"Line {line_id}: No active call (state={line.state})")
             return False
         
+        logger.info(f"Line {line_id}: Calling baresip.hangup()")
         return baresip.hangup()
     
     def get_line(self, line_id: int) -> Optional[PhoneLine]:
