@@ -251,8 +251,8 @@ class BaresipProcess:
             return False
         
         try:
-            logger.info(f"Line {self.line_id}: Writing '/hangup' command to baresip stdin")
-            self.process.stdin.write("/hangup\n")
+            logger.info(f"Line {self.line_id}: Writing 'h' (hangup) command to baresip stdin")
+            self.process.stdin.write("h\n")
             self.process.stdin.flush()
             
             logger.info(f"Line {self.line_id}: Hangup command sent successfully")
