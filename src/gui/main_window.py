@@ -265,13 +265,13 @@ class MainWindow(QMainWindow):
         """Handle call request from dialer"""
         if not self.selected_line_id:
             logger.warning("Call requested but no line selected")
-            QMessageBox.warning(self, "No Line Selected", "Please select a line first")
+            self._show_styled_message("No Line Selected", "Please select a line from the dropdown first")
             return
         
         line = self.sip_engine.get_line(self.selected_line_id)
         if not line.is_available():
             logger.warning(f"Line {self.selected_line_id} not available")
-            QMessageBox.warning(self, "Line Unavailable", f"Line {self.selected_line_id} is not available")
+            self._show_styled_message("Line Unavailable", f"Line {self.selected_line_id} is not available")
             return
         
         # Make call
@@ -382,6 +382,50 @@ class MainWindow(QMainWindow):
         
         # Update line selector dropdown
         self._update_line_selector()
+    
+    def _show_styled_message(self, title: str, message: str):
+        """Show a styled message dialog"""
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Warning)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        
+        # Style the message box for better visibility
+        msg_box.setStyleSheet("""
+            QMessageBox {
+                background-color: #2a2a2a;
+                color: white;
+                font-size: 18px;
+            }
+            QMessageBox QLabel {
+                color: white;
+                font-size: 20px;
+                font-weight: bold;
+                min-width: 400px;
+                min-height: 80px;
+            }
+            QPushButton {
+                background-color: #4a4a4a;
+                color: white;
+                border: 2px solid #666;
+                border-radius: 8px;
+                padding: 15px 30px;
+                font-size: 18px;
+                font-weight: bold;
+                min-width: 120px;
+                min-height: 50px;
+            }
+            QPushButton:hover {
+                background-color: #5a5a5a;
+                border-color: #888;
+            }
+            QPushButton:pressed {
+                background-color: #3a3a3a;
+            }
+        """)
+        
+        msg_box.exec_()
     
     def closeEvent(self, event):
         """Handle window close"""
