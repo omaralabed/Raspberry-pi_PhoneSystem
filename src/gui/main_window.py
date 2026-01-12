@@ -6,7 +6,7 @@ Main Window - TouchScreen GUI
 import sys
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QGridLayout, QPushButton, QLabel, QFrame, QMessageBox, QComboBox)
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QEvent
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QPalette, QColor
 import logging
 
@@ -58,15 +58,6 @@ class MainWindow(QMainWindow):
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self._update_display)
         self.update_timer.start(1000)  # Update every second
-        
-        # Mouse cursor auto-hide timer
-        self.cursor_timer = QTimer()
-        self.cursor_timer.timeout.connect(self._hide_cursor)
-        self.cursor_timer.setSingleShot(True)
-        self.cursor_visible = True
-        
-        # Install event filter to track mouse movement
-        self.installEventFilter(self)
         
         logger.info("Main window initialized")
     
@@ -392,30 +383,7 @@ class MainWindow(QMainWindow):
         # Update line selector dropdown
         self._update_line_selector()
     
-    def eventFilter(self, obj, event):
-        """Filter events to detect mouse movement"""
-        if event.type() == QEvent.MouseMove:
-            self._show_cursor()
-            # Restart timer to hide cursor after 3 seconds of inactivity
-            self.cursor_timer.start(3000)
-        return super().eventFilter(obj, event)
-    
-    def _show_cursor(self):
-        """Show mouse cursor"""
-        if not self.cursor_visible:
-            self.setCursor(Qt.ArrowCursor)
-            self.cursor_visible = True
-            logger.debug("Mouse cursor shown")
-    
-    def _hide_cursor(self):
-        """Hide mouse cursor after inactivity"""
-        if self.cursor_visible:
-            self.setCursor(Qt.BlankCursor)
-            self.cursor_visible = False
-            logger.debug("Mouse cursor hidden due to inactivity")
-    
     def closeEvent(self, event):
         """Handle window close"""
         self.update_timer.stop()
-        self.cursor_timer.stop()
         event.accept()
