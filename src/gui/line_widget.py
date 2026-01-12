@@ -20,7 +20,6 @@ class LineWidget(QWidget):
     """
     
     # Signals
-    clicked = pyqtSignal(int)  # line_id
     hangup_clicked = pyqtSignal(int)  # line_id
     audio_channel_changed = pyqtSignal(int, int)  # line_id, channel
     
@@ -77,31 +76,21 @@ class LineWidget(QWidget):
         frame_layout.setContentsMargins(10, 10, 10, 10)
         frame_layout.setSpacing(8)
         
-        # Top row: Line number (clickable) and audio label
+        # Top row: Line number and audio label
         top_row = QHBoxLayout()
         top_row.setSpacing(10)
         top_row.setContentsMargins(0, 0, 0, 0)
         
-        # Make the line label a clickable button
-        self.line_btn = QPushButton(f"Line {self.line.line_id}")
-        self.line_btn.setFont(QFont("Segoe UI", 14, QFont.Bold))
-        self.line_btn.clicked.connect(self._on_frame_click)
-        self.line_btn.setStyleSheet("""
-            QPushButton {
+        # Line number label (not clickable anymore - use dropdown instead)
+        line_label = QLabel(f"Line {self.line.line_id}")
+        line_label.setFont(QFont("Segoe UI", 14, QFont.Bold))
+        line_label.setStyleSheet("""
+            QLabel {
                 color: #00d4ff;
-                background: transparent;
-                border: none;
                 padding: 2px 5px;
-                text-align: left;
-            }
-            QPushButton:hover {
-                color: #4ae3ff;
-            }
-            QPushButton:pressed {
-                color: #00a8cc;
             }
         """)
-        top_row.addWidget(self.line_btn)
+        top_row.addWidget(line_label)
         
         top_row.addStretch()
         
@@ -240,11 +229,6 @@ class LineWidget(QWidget):
         button_row.addWidget(self.hangup_btn)
         
         frame_layout.addLayout(button_row)
-    
-    def _on_frame_click(self):
-        """Handle click on line widget"""
-        logger.info(f"Line {self.line.line_id} selected")
-        self.clicked.emit(self.line.line_id)
     
     def _on_hangup(self):
         """Handle hangup button click"""

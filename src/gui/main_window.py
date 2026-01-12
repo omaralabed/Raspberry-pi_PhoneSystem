@@ -5,7 +5,7 @@ Main Window - TouchScreen GUI
 
 import sys
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                             QGridLayout, QPushButton, QLabel, QFrame, QMessageBox)
+                             QGridLayout, QPushButton, QLabel, QFrame, QMessageBox, QComboBox)
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QPalette, QColor
 import logging
@@ -156,24 +156,53 @@ class MainWindow(QMainWindow):
         layout.setSpacing(15)
         layout.setContentsMargins(15, 15, 15, 15)
         
-        # Selected line display with modern styling
-        self.selected_line_label = QLabel("Select a line to dial")
-        self.selected_line_label.setFont(QFont("Segoe UI", 13, QFont.Bold))
-        self.selected_line_label.setAlignment(Qt.AlignCenter)
-        self.selected_line_label.setStyleSheet("""
-            QLabel {
+        # Line selection dropdown - shows only available lines
+        self.line_selector = QComboBox()
+        self.line_selector.setFont(QFont("Segoe UI", 13, QFont.Bold))
+        self.line_selector.setMinimumHeight(60)
+        self.line_selector.currentIndexChanged.connect(self._on_line_selector_changed)
+        self.line_selector.setStyleSheet("""
+            QComboBox {
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #ff6b6b,
-                    stop:1 #ee5a6f
+                    stop:0 #4a5568,
+                    stop:1 #2d3748
                 );
-                color: white;
-                padding: 15px;
+                border: 2px solid rgba(0, 212, 255, 0.3);
                 border-radius: 10px;
+                padding: 15px;
+                color: white;
                 font-weight: bold;
             }
+            QComboBox:hover {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #5a6578,
+                    stop:1 #3d4758
+                );
+                border: 2px solid rgba(0, 212, 255, 0.5);
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 30px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                width: 0px;
+                height: 0px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #2d3748;
+                color: white;
+                selection-background-color: #00d4ff;
+                selection-color: #1a1a2e;
+                border: 2px solid rgba(0, 212, 255, 0.3);
+                border-radius: 6px;
+                padding: 5px;
+                font-size: 14px;
+            }
         """)
-        layout.addWidget(self.selected_line_label)
+        layout.addWidget(self.line_selector)
         
         # Dialer widget
         self.dialer = DialerWidget(self)
@@ -186,69 +215,73 @@ class MainWindow(QMainWindow):
         
         return panel
     
-    def _on_line_selected(self, line_id: int):
-        """Handle line selection"""
-        if self.selected_line_id == line_id:
-            # Deselect if clicking same line
+    def _on_line_selector_changed(self, index: int):
+        """Handle line selection from dropdown"""
+        if index == 0:
+            # "Select a line..." option
             self.selected_line_id = None
-            self.selected_line_label.setText("Select a line to dial")
-            self.selected_line_label.setStyleSheet("""
-                QLabel {
-                    background: qlineargradient(
-                        x1:0, y1:0, x2:1, y2:0,
-                        stop:0 #ff6b6b,
-                        stop:1 #ee5a6f
-                    );
-                    color: white;
-                    padding: 15px;
-                    border-radius: 10px;
-                    font-weight: bold;
-                }
-            """)
+            logger.info("Line selection cleared")
         else:
-            line = self.sip_engine.get_line(line_id)
-            if line.is_available():
+            # Get the line_id from the combo box item data
+            line_id = self.line_selector.itemData(index)
+            if line_id:
                 self.selected_line_id = line_id
-                self.selected_line_label.setText(f"Line {line_id} selected")
-                self.selected_line_label.setStyleSheet("""
-                    QLabel {
-                        background: qlineargradient(
-                            x1:0, y1:0, x2:1, y2:0,
-                            stop:0 #00d4ff,
-                            stop:1 #00a8cc
-                        );
-                        color: white;
-                        padding: 15px;
-                        border-radius: 10px;
-                        font-weight: bold;
-                    }
-                """)
-            else:
-                self.selected_line_label.setText(f"Line {line_id} busy")
+                logger.info(f"Line {line_id} selected from dropdown")
+    
+    def _update_line_selector(self):
+        """Update the line selector dropdown with available lines"""
+        # Store current selection
+        current_line = self.selected_line_id
         
-        # Update line widget highlights
-        for widget in self.line_widgets:
-            widget.set_selected(widget.line.line_id == self.selected_line_id)
+        # Block signals while updating
+        self.line_selector.blockSignals(True)
+        self.line_selector.clear()
+        
+        # Add default option
+        self.line_selector.addItem("Select a line to dial...", None)
+        
+        # Add available lines
+        for line_id in range(1, 9):
+            line = self.sip_engine.get_line(line_id)
+            if line and line.is_available():
+                self.line_selector.addItem(f"Line {line_id} (Available)", line_id)
+        
+        # Restore selection if still valid
+        if current_line:
+            for i in range(self.line_selector.count()):
+                if self.line_selector.itemData(i) == current_line:
+                    self.line_selector.setCurrentIndex(i)
+                    break
+            else:
+                # Line no longer available, reset
+                self.selected_line_id = None
+                self.line_selector.setCurrentIndex(0)
+        else:
+            self.line_selector.setCurrentIndex(0)
+        
+        # Unblock signals
+        self.line_selector.blockSignals(False)
     
     def _on_call_requested(self, phone_number: str):
         """Handle call request from dialer"""
         if not self.selected_line_id:
-            self.selected_line_label.setText("Please select a line first")
+            logger.warning("Call requested but no line selected")
+            QMessageBox.warning(self, "No Line Selected", "Please select a line first")
             return
         
         line = self.sip_engine.get_line(self.selected_line_id)
         if not line.is_available():
-            self.selected_line_label.setText(f"Line {self.selected_line_id} not available")
+            logger.warning(f"Line {self.selected_line_id} not available")
+            QMessageBox.warning(self, "Line Unavailable", f"Line {self.selected_line_id} is not available")
             return
         
         # Make call
         logger.info(f"Making call on line {self.selected_line_id} to {phone_number}")
         self.make_call_signal.emit(self.selected_line_id, phone_number)
         
-        # Clear selection
+        # Clear selection - reset dropdown to "Select a line..."
         self.selected_line_id = None
-        self.selected_line_label.setText("Select a line to dial")
-        self.selected_line_label.setStyleSheet("background-color: #3a3a3a; padding: 10px;")
+        self.line_selector.setCurrentIndex(0)
         
         # Update UI
         self._update_display()
@@ -347,6 +380,9 @@ class MainWindow(QMainWindow):
         # Update audio routing display
         lines = [self.sip_engine.get_line(i) for i in range(1, 9)]
         self.audio_widget.update_routing_display(lines)
+        
+        # Update line selector dropdown
+        self._update_line_selector()
     
     def closeEvent(self, event):
         """Handle window close"""
