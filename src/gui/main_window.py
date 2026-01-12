@@ -157,9 +157,9 @@ class MainWindow(QMainWindow):
         
         # Line selection dropdown - shows only available lines
         self.line_selector = QComboBox()
-        self.line_selector.setFont(QFont("Segoe UI", 13, QFont.Bold))
+        self.line_selector.setFont(QFont("Segoe UI", 11, QFont.Bold))
         self.line_selector.setMinimumHeight(60)
-        self.line_selector.setMinimumWidth(300)
+        self.line_selector.setMinimumWidth(400)
         self.line_selector.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.line_selector.currentIndexChanged.connect(self._on_line_selector_changed)
         self.line_selector.setStyleSheet("""
@@ -172,9 +172,10 @@ class MainWindow(QMainWindow):
                 border: 2px solid rgba(0, 212, 255, 0.3);
                 border-radius: 10px;
                 padding: 15px;
-                padding-right: 40px;
+                padding-right: 50px;
                 color: white;
                 font-weight: bold;
+                font-size: 11pt;
             }
             QComboBox:hover {
                 background: qlineargradient(
@@ -201,8 +202,8 @@ class MainWindow(QMainWindow):
                 border: 2px solid rgba(0, 212, 255, 0.3);
                 border-radius: 6px;
                 padding: 5px;
-                font-size: 14px;
-                min-width: 300px;
+                font-size: 12px;
+                min-width: 400px;
             }
         """)
         layout.addWidget(self.line_selector)
@@ -241,7 +242,7 @@ class MainWindow(QMainWindow):
         self.line_selector.clear()
         
         # Add default option
-        self.line_selector.addItem("Select a line...", None)
+        self.line_selector.addItem("Select a line to dial...", None)
         
         # Add available lines
         for line_id in range(1, 9):
