@@ -232,6 +232,7 @@ class LineWidget(QWidget):
     
     def _on_hangup(self):
         """Handle hangup button click"""
+        logger.info(f"[LineWidget] Hangup button clicked for line {self.line.line_id}")
         self.hangup_clicked.emit(self.line.line_id)
     
     def _on_channel_changed(self, index):
@@ -268,7 +269,9 @@ class LineWidget(QWidget):
         self.channel_picker.blockSignals(False)
         
         # Enable/disable hangup button based on line state
-        self.hangup_btn.setEnabled(self.line.is_active())
+        is_active = self.line.is_active()
+        self.hangup_btn.setEnabled(is_active)
+        logger.debug(f"Line {self.line.line_id} update: state={self.line.state}, is_active={is_active}, hangup_enabled={is_active}")
         
         # Update colors
         self._update_style()

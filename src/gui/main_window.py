@@ -287,7 +287,7 @@ class MainWindow(QMainWindow):
     
     def _on_hangup_clicked(self, line_id: int):
         """Handle hangup button click"""
-        logger.info(f"Hanging up line {line_id}")
+        logger.info(f"[MainWindow] Hangup clicked signal received for line {line_id}")
         self.hangup_signal.emit(line_id)
     
     def _on_audio_channel_changed(self, line_id: int, new_channel: int):
