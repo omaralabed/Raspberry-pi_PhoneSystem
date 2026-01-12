@@ -234,16 +234,55 @@ class LineWidget(QWidget):
         """Handle hangup button click"""
         logger.info(f"[LineWidget] Hangup button clicked for line {self.line.line_id}")
         
-        # Show confirmation dialog
-        reply = QMessageBox.question(
-            self,
-            'Confirm Hangup',
-            f'Are you sure you want to hang up Line {self.line.line_id}?',
-            QMessageBox.Yes | QMessageBox.Cancel,
-            QMessageBox.Cancel  # Default button
-        )
+        # Create custom message box with better styling
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Question)
+        msg_box.setWindowTitle('Confirm Hangup')
+        msg_box.setText(f'Are you sure you want to hang up Line {self.line.line_id}?')
         
-        if reply == QMessageBox.Yes:
+        # Add buttons
+        yes_btn = msg_box.addButton('Yes', QMessageBox.YesRole)
+        cancel_btn = msg_box.addButton('Cancel', QMessageBox.RejectRole)
+        msg_box.setDefaultButton(cancel_btn)
+        
+        # Style the message box for better visibility
+        msg_box.setStyleSheet("""
+            QMessageBox {
+                background-color: #2a2a2a;
+                color: white;
+                font-size: 18px;
+            }
+            QMessageBox QLabel {
+                color: white;
+                font-size: 20px;
+                font-weight: bold;
+                min-width: 400px;
+                min-height: 80px;
+            }
+            QPushButton {
+                background-color: #4a4a4a;
+                color: white;
+                border: 2px solid #666;
+                border-radius: 8px;
+                padding: 15px 30px;
+                font-size: 18px;
+                font-weight: bold;
+                min-width: 120px;
+                min-height: 50px;
+            }
+            QPushButton:hover {
+                background-color: #5a5a5a;
+                border-color: #888;
+            }
+            QPushButton:pressed {
+                background-color: #3a3a3a;
+            }
+        """)
+        
+        # Show dialog and check response
+        msg_box.exec_()
+        
+        if msg_box.clickedButton() == yes_btn:
             logger.info(f"[LineWidget] User confirmed hangup for line {self.line.line_id}")
             self.hangup_clicked.emit(self.line.line_id)
         else:
