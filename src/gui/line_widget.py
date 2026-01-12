@@ -233,7 +233,21 @@ class LineWidget(QWidget):
     def _on_hangup(self):
         """Handle hangup button click"""
         logger.info(f"[LineWidget] Hangup button clicked for line {self.line.line_id}")
-        self.hangup_clicked.emit(self.line.line_id)
+        
+        # Show confirmation dialog
+        reply = QMessageBox.question(
+            self,
+            'Confirm Hangup',
+            f'Are you sure you want to hang up Line {self.line.line_id}?',
+            QMessageBox.Yes | QMessageBox.Cancel,
+            QMessageBox.Cancel  # Default button
+        )
+        
+        if reply == QMessageBox.Yes:
+            logger.info(f"[LineWidget] User confirmed hangup for line {self.line.line_id}")
+            self.hangup_clicked.emit(self.line.line_id)
+        else:
+            logger.info(f"[LineWidget] User cancelled hangup for line {self.line.line_id}")
     
     def _on_channel_changed(self, index):
         """Handle channel selection change"""
