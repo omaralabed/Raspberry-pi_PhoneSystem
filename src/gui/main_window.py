@@ -192,14 +192,37 @@ class MainWindow(QMainWindow):
             # Deselect if clicking same line
             self.selected_line_id = None
             self.selected_line_label.setText("Select a line to dial")
+            self.selected_line_label.setStyleSheet("""
+                QLabel {
+                    background: qlineargradient(
+                        x1:0, y1:0, x2:1, y2:0,
+                        stop:0 #ff6b6b,
+                        stop:1 #ee5a6f
+                    );
+                    color: white;
+                    padding: 15px;
+                    border-radius: 10px;
+                    font-weight: bold;
+                }
+            """)
         else:
             line = self.sip_engine.get_line(line_id)
             if line.is_available():
                 self.selected_line_id = line_id
                 self.selected_line_label.setText(f"Line {line_id} selected")
-                self.selected_line_label.setStyleSheet(
-                    "background-color: #2a5a8a; padding: 10px; font-weight: bold;"
-                )
+                self.selected_line_label.setStyleSheet("""
+                    QLabel {
+                        background: qlineargradient(
+                            x1:0, y1:0, x2:1, y2:0,
+                            stop:0 #00d4ff,
+                            stop:1 #00a8cc
+                        );
+                        color: white;
+                        padding: 15px;
+                        border-radius: 10px;
+                        font-weight: bold;
+                    }
+                """)
             else:
                 self.selected_line_label.setText(f"Line {line_id} busy")
         
@@ -237,6 +260,15 @@ class MainWindow(QMainWindow):
     
     def _on_audio_channel_changed(self, line_id: int, new_channel: int):
         """Handle audio channel selection change"""
+        # If setting to None (0), no conflict check needed
+        if new_channel == 0:
+            line = self.sip_engine.get_line(line_id)
+            line.set_audio_channel(new_channel)
+            logger.info(f"Line {line_id}: Channel set to None")
+            self.route_audio_signal.emit(line_id, new_channel)
+            self._update_display()
+            return
+        
         # Check if another line is already using this channel
         conflicting_line = None
         for i in range(1, 9):

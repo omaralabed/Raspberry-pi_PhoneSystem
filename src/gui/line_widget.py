@@ -136,7 +136,7 @@ class LineWidget(QWidget):
         self.channel_picker.addItem("🔇 None ▼", 0)  # No output with icon and down arrow
         for i in range(1, 9):
             self.channel_picker.addItem(f"🔊 {i}", i)
-        self.channel_picker.setCurrentIndex(1)  # Default to channel 1
+        self.channel_picker.setCurrentIndex(0)  # Default to None (matches phone_line default)
         self.channel_picker.currentIndexChanged.connect(self._on_channel_changed)
         self.channel_picker.setStyleSheet("""
             QComboBox {
@@ -230,12 +230,15 @@ class LineWidget(QWidget):
         
         frame_layout.addLayout(button_row)
         
-        # Make frame clickable
-        self.frame.mousePressEvent = self._on_click
+        # Make frame clickable - but don't eat child widget events
+        self.frame.mouseReleaseEvent = self._on_click
     
     def _on_click(self, event):
         """Handle click on line widget"""
-        self.clicked.emit(self.line.line_id)
+        # Only emit click if we're clicking on the frame background, not child widgets
+        child = self.frame.childAt(event.pos())
+        if child is None or isinstance(child, QLabel):
+            self.clicked.emit(self.line.line_id)
     
     def _on_hangup(self):
         """Handle hangup button click"""
