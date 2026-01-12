@@ -405,9 +405,10 @@ class MainWindow(QMainWindow):
             }
             QMessageBox QLabel {
                 color: white;
-                font-size: 20px;
+                font-size: 18px;
                 font-weight: bold;
-                min-width: 400px;
+                min-width: 500px;
+                max-width: 600px;
                 min-height: 80px;
             }
             QPushButton {
