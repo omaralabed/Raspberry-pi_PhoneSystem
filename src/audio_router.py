@@ -116,7 +116,7 @@ class AudioRouter:
                 try:
                     stream.stop()
                     stream.close()
-                except:
+                except Exception:
                     pass
             
             self.streams.clear()
