@@ -123,8 +123,16 @@ class SIPSettingsDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("SIP Provider Settings")
         self.setModal(True)
-        self.setMinimumWidth(800)
-        self.setMinimumHeight(850)
+        # Fit to 800x480 touchscreen
+        self.setFixedSize(780, 460)
+        
+        # Center on parent window
+        if parent:
+            parent_geo = parent.geometry()
+            self.move(
+                parent_geo.x() + (parent_geo.width() - 780) // 2,
+                parent_geo.y() + (parent_geo.height() - 460) // 2
+            )
         
         self.active_input = None
         
