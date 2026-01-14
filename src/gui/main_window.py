@@ -511,7 +511,7 @@ class MainWindow(QMainWindow):
         # Update timer
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self._update_display)
-        self.update_timer.start(1000)  # Update every second
+        self.update_timer.start(2000)  # Update every 2 seconds (reduce CPU load)
         
         # Mouse cursor auto-hide setup
         self.cursor_hide_timer = QTimer()

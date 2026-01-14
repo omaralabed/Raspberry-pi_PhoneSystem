@@ -17,7 +17,9 @@ A professional 8-line phone system for Raspberry Pi with touchscreen interface, 
 - **Raspberry Pi 4 (4GB RAM)** or Raspberry Pi 5 (8GB recommended)
 - **Official 7" Touchscreen** or compatible touchscreen display
 - **USB Audio Interface** - Multi-channel (minimum 4 outputs for stereo IFB + PL)
-  - Recommended: Behringer UMC404HD, Focusrite Scarlett 4i4, or similar
+  - **Option A (Budget):** DIY Raspberry Pi Pico 2 interface (~$150) - See [PICO2_AUDIO_INTERFACE.md](PICO2_AUDIO_INTERFACE.md)
+  - **Option B (Commercial):** Behringer UMC1820, Focusrite Scarlett 18i20 (~$300-500)
+  - For 2-wire party line XLR: Custom Pico 2 interface recommended
 - **MicroSD Card** - 32GB or larger, Class 10
 - **Power Supply** - Official Raspberry Pi power adapter
 - **Network Connection** - Ethernet (recommended) or WiFi
