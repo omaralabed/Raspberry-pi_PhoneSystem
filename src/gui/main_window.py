@@ -14,6 +14,8 @@ from .dialer_widget import DialerWidget
 from .line_widget import LineWidget
 from .audio_widget import AudioWidget
 
+from .sip_settings import SIPSettingsDialog
+
 logger = logging.getLogger(__name__)
 
 
