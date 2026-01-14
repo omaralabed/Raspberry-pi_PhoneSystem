@@ -219,13 +219,6 @@ class PhoneLine:
             logger.info(f"Line {self.line_id}: Dialing {phone_number}")
             return True
     
-    def call_connected(self, call_id: int) -> None:
-        """
-        Mark call as connected
-        
-        Args:
-            call_id: Call identifier (phone number or call ID)
-        """
     def call_connected(self, call_id: str) -> None:
         """
         Mark call as connected
