@@ -6,7 +6,7 @@ SIP Settings Dialog - Configure SIP Provider Credentials
 import json
 import os
 import logging
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QGridLayout,
+from PyQt5.QtWidgets import (QWidget, QDialog, QVBoxLayout, QHBoxLayout, QGridLayout,
                              QPushButton, QLabel, QLineEdit, QComboBox, 
                              QFormLayout, QMessageBox)
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QEvent
@@ -22,7 +22,6 @@ class VirtualKeyboard(QWidget):
     close_requested = pyqtSignal()
     
     def __init__(self, parent=None):
-        from PyQt5.QtWidgets import QWidget
         super().__init__(parent)
         self.shift_active = False
         self.setFixedHeight(310)
