@@ -497,6 +497,9 @@ class MainWindow(QMainWindow):
         # Selected line for dialing
         self.selected_line_id = None
         
+        # Cache for line selector state
+        self._last_available_lines = None
+        
         # UI Setup
         self.setWindowTitle("Phone System - IFB/PL")
         # Use available screen size instead of hardcoded resolution
@@ -733,7 +736,19 @@ class MainWindow(QMainWindow):
                 logger.info(f"Line {line_id} selected from dropdown")
     
     def _update_line_selector(self):
-        """Update the line selector dropdown with available lines"""
+        """Update the line selector dropdown with available lines - with caching"""
+        # Get current available lines
+        available_lines = []
+        for line_id in range(1, 9):
+            line = self.sip_engine.get_line(line_id)
+            if line and line.is_available():
+                available_lines.append(line_id)
+        
+        # Check if available lines changed
+        if tuple(available_lines) == self._last_available_lines:
+            return  # No change, skip expensive update
+        self._last_available_lines = tuple(available_lines)
+        
         # Store current selection
         current_line = self.selected_line_id
         
@@ -745,10 +760,8 @@ class MainWindow(QMainWindow):
         self.line_selector.addItem("Select a line to dial...", None)
         
         # Add available lines
-        for line_id in range(1, 9):
-            line = self.sip_engine.get_line(line_id)
-            if line and line.is_available():
-                self.line_selector.addItem(f"Line {line_id} (Available)", line_id)
+        for line_id in available_lines:
+            self.line_selector.addItem(f"Line {line_id} (Available)", line_id)
         
         # Restore selection if still valid
         if current_line:

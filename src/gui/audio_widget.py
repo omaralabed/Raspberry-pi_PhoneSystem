@@ -30,6 +30,7 @@ class AudioWidget(QWidget):
         self.audio_router = audio_router
         self.available_label = None  # Label showing available lines
         self.output_labels = []  # Store label references for updates
+        self._last_routing = {}  # Cache for routing state
         self._create_ui()
         
         logger.info("Audio widget initialized")
@@ -265,7 +266,7 @@ class AudioWidget(QWidget):
     
     def update_routing_display(self, lines):
         """
-        Update the routing display with current line assignments
+        Update the routing display with current line assignments - with caching
         
         Args:
             lines: List of PhoneLine objects (lines 1-8)
@@ -277,11 +278,15 @@ class AudioWidget(QWidget):
         for line in lines:
             channel = line.audio_output.channel
             if channel == 0:
-                # Line not assigned to any output
                 available_lines.append(line.line_id)
             else:
-                # Line assigned to this output
                 output_to_line[channel] = line.line_id
+        
+        # Check if routing changed
+        current_routing = (tuple(sorted(output_to_line.items())), tuple(available_lines))
+        if current_routing == self._last_routing:
+            return  # Nothing changed, skip expensive updates
+        self._last_routing = current_routing
         
         # Update available lines label
         if available_lines:

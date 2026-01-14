@@ -36,6 +36,11 @@ class LineWidget(QWidget):
         self.line = line
         self.is_selected = False
         
+        # Cache for state to avoid redundant updates
+        self._last_state = None
+        self._last_channel = None
+        self._last_selected = None
+        
         self._create_ui()
         self.update_display()
         
@@ -302,36 +307,52 @@ class LineWidget(QWidget):
     def set_selected(self, selected: bool):
         """Set selection highlight"""
         self.is_selected = selected
+        self._last_selected = None  # Force style update
         self._update_style()
     
     def update_display(self):
-        """Update display based on line state"""
-        # Status text
-        self.status_label.setText(self.line.get_status_string())
-        
-        # Audio routing - show output channel number or "No Output"
-        if self.line.audio_output.channel == 0:
-            self.audio_label.setText("No Output")
-        else:
-            self.audio_label.setText(f"Out {self.line.audio_output.channel}")
-        
-        # Update channel picker to match current channel
+        """Update display based on line state - with caching to reduce CPU"""
+        current_state = self.line.state
         current_channel = self.line.audio_output.channel
-        self.channel_picker.blockSignals(True)
-        # Find the index for the channel value (0="None" is at index 0, channel 1 is at index 1, etc.)
-        for i in range(self.channel_picker.count()):
-            if self.channel_picker.itemData(i) == current_channel:
-                self.channel_picker.setCurrentIndex(i)
-                break
-        self.channel_picker.blockSignals(False)
         
-        # Enable/disable hangup button based on line state
-        is_active = self.line.is_active()
-        self.hangup_btn.setEnabled(is_active)
-        logger.debug(f"Line {self.line.line_id} update: state={self.line.state}, is_active={is_active}, hangup_enabled={is_active}")
+        # Check if anything actually changed
+        state_changed = (current_state != self._last_state)
+        channel_changed = (current_channel != self._last_channel)
+        selected_changed = (self.is_selected != self._last_selected)
         
-        # Update colors
+        if not (state_changed or channel_changed or selected_changed):
+            return  # Nothing changed, skip expensive updates
+        
+        # Status text (only if state changed)
+        if state_changed:
+            self.status_label.setText(self.line.get_status_string())
+            # Enable/disable hangup button based on line state
+            is_active = self.line.is_active()
+            self.hangup_btn.setEnabled(is_active)
+            logger.debug(f"Line {self.line.line_id} update: state={current_state}, is_active={is_active}")
+        
+        # Audio routing (only if channel changed)
+        if channel_changed:
+            if current_channel == 0:
+                self.audio_label.setText("No Output")
+            else:
+                self.audio_label.setText(f"Out {current_channel}")
+            
+            # Update channel picker
+            self.channel_picker.blockSignals(True)
+            for i in range(self.channel_picker.count()):
+                if self.channel_picker.itemData(i) == current_channel:
+                    self.channel_picker.setCurrentIndex(i)
+                    break
+            self.channel_picker.blockSignals(False)
+        
+        # Update colors (only if state, channel, or selection changed)
         self._update_style()
+        
+        # Update cache
+        self._last_state = current_state
+        self._last_channel = current_channel
+        self._last_selected = self.is_selected
     
     def _update_style(self):
         """Update widget styling based on state with modern colors"""
