@@ -900,6 +900,11 @@ class MainWindow(QMainWindow):
                 }
             """)
             
+            # Center the message box on screen
+            from PyQt5.QtWidgets import QApplication
+            screen_center = QApplication.primaryScreen().geometry().center()
+            msg.move(screen_center.x() - msg.width() // 2, screen_center.y() - msg.height() // 2)
+            
             result = msg.exec_()
             
             if result == QMessageBox.Yes:
@@ -950,31 +955,30 @@ class MainWindow(QMainWindow):
         msg_box.setText(message)
         msg_box.setStandardButtons(QMessageBox.Ok)
         
-        # Style the message box for better visibility
+        # Style the message box for better visibility - more compact for small screens
         msg_box.setStyleSheet("""
             QMessageBox {
                 background-color: #2a2a2a;
                 color: white;
-                font-size: 18px;
+                font-size: 14px;
             }
             QMessageBox QLabel {
                 color: white;
-                font-size: 18px;
+                font-size: 14px;
                 font-weight: bold;
-                min-width: 500px;
-                max-width: 600px;
-                min-height: 80px;
+                min-width: 300px;
+                max-width: 400px;
             }
             QPushButton {
                 background-color: #4a4a4a;
                 color: white;
                 border: 2px solid #666;
-                border-radius: 8px;
-                padding: 15px 30px;
-                font-size: 18px;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-size: 14px;
                 font-weight: bold;
-                min-width: 120px;
-                min-height: 50px;
+                min-width: 80px;
+                min-height: 40px;
             }
             QPushButton:hover {
                 background-color: #5a5a5a;
@@ -985,9 +989,11 @@ class MainWindow(QMainWindow):
             }
         """)
         
-        # Position the dialog below the line selector dropdown
-        selector_pos = self.line_selector.mapToGlobal(self.line_selector.rect().bottomLeft())
-        msg_box.move(selector_pos.x(), selector_pos.y() + 10)
+        # Center the message box on screen
+        from PyQt5.QtWidgets import QApplication
+        screen_center = QApplication.primaryScreen().geometry().center()
+        msg_box.adjustSize()  # Ensure size is calculated
+        msg_box.move(screen_center.x() - msg_box.width() // 2, screen_center.y() - msg_box.height() // 2)
         
         msg_box.exec_()
     
@@ -996,7 +1002,8 @@ class MainWindow(QMainWindow):
         # Create custom warning dialog
         warning = QDialog(self)
         warning.setWindowTitle("Authorization Required")
-        warning.setFixedSize(500, 250)
+        warning.setMinimumSize(350, 200)  # Use minimum size instead of fixed
+        warning.setMaximumSize(500, 300)  # Allow flexibility for different screens
         warning.setStyleSheet("""
             QDialog {
                 background-color: #1e1e2e;
@@ -1011,26 +1018,26 @@ class MainWindow(QMainWindow):
         
         # Warning message
         label = QLabel("Only authorized users may change this setting.")
-        label.setStyleSheet("color: white; font-size: 22px; font-weight: bold;")
+        label.setStyleSheet("color: white; font-size: 16px; font-weight: bold;")
         label.setAlignment(Qt.AlignCenter)
         label.setWordWrap(True)
         layout.addWidget(label)
         
         layout.addStretch()
         
-        # Buttons
+        # Buttons - more compact
         btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(20)
+        btn_layout.setSpacing(15)
         
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.setFixedSize(150, 60)
+        cancel_btn.setMinimumSize(100, 45)
         cancel_btn.setStyleSheet("""
             QPushButton {
                 background-color: #6b7280;
                 color: white;
                 border: none;
-                border-radius: 8px;
-                font-size: 18px;
+                border-radius: 6px;
+                font-size: 14px;
                 font-weight: bold;
             }
             QPushButton:pressed {
@@ -1041,14 +1048,14 @@ class MainWindow(QMainWindow):
         btn_layout.addWidget(cancel_btn)
         
         ok_btn = QPushButton("Ok")
-        ok_btn.setFixedSize(150, 60)
+        ok_btn.setMinimumSize(100, 45)
         ok_btn.setStyleSheet("""
             QPushButton {
                 background-color: #3b82f6;
                 color: white;
                 border: none;
-                border-radius: 8px;
-                font-size: 18px;
+                border-radius: 6px;
+                font-size: 14px;
                 font-weight: bold;
             }
             QPushButton:pressed {
@@ -1060,9 +1067,11 @@ class MainWindow(QMainWindow):
         
         layout.addLayout(btn_layout)
         
-        # Position over settings button
-        btn_pos = self.settings_btn.mapToGlobal(self.settings_btn.rect().center())
-        warning.move(btn_pos.x() - warning.width() // 2, btn_pos.y() - warning.height() - 20)
+        # Center dialog on screen
+        from PyQt5.QtWidgets import QApplication
+        warning.adjustSize()  # Calculate size first
+        screen_center = QApplication.primaryScreen().geometry().center()
+        warning.move(screen_center.x() - warning.width() // 2, screen_center.y() - warning.height() // 2)
         
         if warning.exec_() != QDialog.Accepted:
             return

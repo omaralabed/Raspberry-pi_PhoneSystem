@@ -198,33 +198,40 @@ class AudioWidget(QWidget):
         
         # Channel selector with modern styling - more compact
         selector_layout = QHBoxLayout()
-        selector_layout.setSpacing(5)
+        selector_layout.setSpacing(8)
         
-        selector_label = QLabel("Ch:")
-        selector_label.setFont(QFont("Segoe UI", 9, QFont.Bold))
+        selector_label = QLabel("Channel:")
+        selector_label.setFont(QFont("Segoe UI", 10, QFont.Bold))
         selector_label.setStyleSheet("color: white;")
         selector_layout.addWidget(selector_label)
         
         self.channel_spinbox = QSpinBox()
         self.channel_spinbox.setRange(1, 8)
         self.channel_spinbox.setValue(1)
-        self.channel_spinbox.setFont(QFont("Segoe UI", 10, QFont.Bold))
-        self.channel_spinbox.setMinimumHeight(30)
+        self.channel_spinbox.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        self.channel_spinbox.setMinimumHeight(50)
+        self.channel_spinbox.setMinimumWidth(120)
+        self.channel_spinbox.setButtonSymbols(QSpinBox.PlusMinus)  # Use +/- buttons instead of arrows
         self.channel_spinbox.setStyleSheet("""
             QSpinBox {
                 background: rgba(255, 255, 255, 0.1);
-                border: 2px solid rgba(0, 212, 255, 0.3);
-                border-radius: 4px;
-                padding: 3px 6px;
+                border: 3px solid rgba(0, 212, 255, 0.5);
+                border-radius: 8px;
+                padding: 8px 12px;
                 color: #00d4ff;
+                font-weight: bold;
             }
             QSpinBox::up-button, QSpinBox::down-button {
-                background: rgba(0, 212, 255, 0.2);
+                background: rgba(0, 212, 255, 0.3);
                 border: none;
-                width: 18px;
+                width: 35px;
+                border-radius: 4px;
             }
             QSpinBox::up-button:hover, QSpinBox::down-button:hover {
-                background: rgba(0, 212, 255, 0.4);
+                background: rgba(0, 212, 255, 0.6);
+            }
+            QSpinBox::up-button:pressed, QSpinBox::down-button:pressed {
+                background: rgba(0, 212, 255, 0.8);
             }
         """)
         selector_layout.addWidget(self.channel_spinbox)
