@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QGridLayout, QPushButton, QLabel, QFrame, QMessageBox, 
                              QComboBox, QDialog, QLineEdit, QSpinBox, QFormLayout, 
                              QDialogButtonBox, QScrollArea, QSizePolicy)
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QEvent, QCoreApplication, QProcess
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QEvent, QCoreApplication, QProcess, QObject
 from PyQt5.QtGui import QFont, QPalette, QColor
 import logging
 
@@ -22,145 +22,6 @@ from .audio_widget import AudioWidget
 from .sip_settings import SIPSettingsDialog
 
 logger = logging.getLogger(__name__)
-
-
-class TouchKeyboard(QWidget):
-    """Modern touch-friendly on-screen keyboard for network configuration"""
-    
-    key_pressed = pyqtSignal(str)
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._create_ui()
-    
-    def _create_ui(self):
-        """Create keyboard layout"""
-        layout = QVBoxLayout(self)
-        layout.setSpacing(15)
-        layout.setContentsMargins(20, 20, 20, 20)
-        
-        # Background
-        self.setStyleSheet("TouchKeyboard { background-color: #1a1a1a; border-radius: 8px; }")
-        
-        # Number row (for IP addresses)
-        num_layout = QHBoxLayout()
-        num_layout.setSpacing(12)
-        numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
-        for num in numbers:
-            btn = self._create_key(num, 80, 60)
-            num_layout.addWidget(btn)
-        layout.addLayout(num_layout)
-        
-        # Special characters row
-        special_layout = QHBoxLayout()
-        special_layout.setSpacing(12)
-        
-        specials = ['.', '/', ':', '-', '_', '⌫']
-        widths = [80, 80, 80, 80, 80, 200]
-        
-        for i, char in enumerate(specials):
-            if char == '⌫':
-                btn = QPushButton(char)
-                btn.setFixedSize(widths[i], 60)
-                btn.setStyleSheet("""
-                    QPushButton {
-                        background-color: #ff6b35;
-                        color: white;
-                        border: none;
-                        border-radius: 6px;
-                        font-size: 22pt;
-                        font-weight: bold;
-                    }
-                    QPushButton:pressed {
-                        background-color: #ff8c5a;
-                    }
-                """)
-                btn.clicked.connect(lambda checked, c='\b': self.key_pressed.emit(c))
-            else:
-                btn = self._create_key(char, widths[i], 60)
-            special_layout.addWidget(btn)
-        
-        layout.addLayout(special_layout)
-        
-        # Action buttons row
-        action_layout = QHBoxLayout()
-        action_layout.setSpacing(12)
-        
-        clear_btn = QPushButton('Clear')
-        clear_btn.setFixedSize(240, 60)
-        clear_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #6c757d;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 18pt;
-                font-weight: bold;
-            }
-            QPushButton:pressed {
-                background-color: #7d8a94;
-            }
-        """)
-        clear_btn.clicked.connect(lambda: self.key_pressed.emit('CLEAR'))
-        action_layout.addWidget(clear_btn)
-        
-        cancel_btn = QPushButton('Cancel')
-        cancel_btn.setFixedSize(300, 60)
-        cancel_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #dc3545;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 18pt;
-                font-weight: bold;
-            }
-            QPushButton:pressed {
-                background-color: #e55563;
-            }
-        """)
-        cancel_btn.clicked.connect(lambda: self.key_pressed.emit('CANCEL'))
-        action_layout.addWidget(cancel_btn)
-        
-        done_btn = QPushButton('Done')
-        done_btn.setFixedSize(320, 60)
-        done_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 20pt;
-                font-weight: bold;
-            }
-            QPushButton:pressed {
-                background-color: #34ce57;
-            }
-        """)
-        done_btn.clicked.connect(lambda: self.key_pressed.emit('DONE'))
-        action_layout.addWidget(done_btn)
-        
-        layout.addLayout(action_layout)
-    
-    def _create_key(self, char, width, height):
-        """Create a keyboard key button"""
-        btn = QPushButton(char)
-        btn.setFixedSize(width, height)
-        btn.setStyleSheet("""
-            QPushButton {
-                background-color: #3f3f46;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                font-size: 20pt;
-                font-weight: bold;
-            }
-            QPushButton:pressed {
-                background-color: #52525b;
-            }
-        """)
-        btn.clicked.connect(lambda: self.key_pressed.emit(char))
-        return btn
 
 
 def load_stylesheet():
@@ -1370,10 +1231,11 @@ class MainWindow(QMainWindow):
         """Show network configuration dialog"""
         parent_dialog.hide()  # Hide menu temporarily
         
-        # Create network settings dialog - FIXED SIZE to fit screen
+        # Create network settings dialog - compact, no extra space
         network_dialog = QDialog(self)
         network_dialog.setWindowTitle("Network Configuration")
-        network_dialog.setFixedSize(900, 750)  # Increased height to prevent overlap
+        network_dialog.setModal(True)
+        network_dialog.setMinimumWidth(800)
         network_dialog.setStyleSheet("""
             QDialog {
                 background-color: #1a1a1a;
@@ -1382,16 +1244,15 @@ class MainWindow(QMainWindow):
             }
         """)
         
-        # Simple layout - no scroll
+        # Simple layout - compact spacing
         layout = QVBoxLayout(network_dialog)
-        layout.setSpacing(3)
-        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(8)
+        layout.setContentsMargins(20, 15, 20, 15)
         
-        # Title - very compact
-        title = QLabel("🌐 Network Configuration")
-        title.setStyleSheet("color: #00d4ff; font-size: 18pt; font-weight: bold;")
-        title.setAlignment(Qt.AlignCenter)
-        title.setFixedHeight(30)
+        # Title (same as SIP style)
+        title = QLabel("Network Configuration")
+        title.setFont(QFont("Segoe UI", 18, QFont.Bold))
+        title.setStyleSheet("color: #00d4ff; margin-bottom: 5px;")
         layout.addWidget(title)
         
         # Get current IP info and detect if static or DHCP
@@ -1429,29 +1290,66 @@ class MainWindow(QMainWindow):
         except:
             pass
         
-        # Current IP display - compact
+        # Current IP display (compact info label)
         mode_text = "Static IP" if is_static else "DHCP"
-        ip_label = QLabel(f"Current: {current_ip} ({mode_text})")
-        ip_label.setStyleSheet("color: white; font-size: 14pt;")
-        ip_label.setAlignment(Qt.AlignCenter)
-        ip_label.setFixedHeight(25)
-        layout.addWidget(ip_label)
+        ip_info = QLabel(f"Current: {current_ip} ({mode_text})")
+        ip_info.setStyleSheet("color: #ffa500; font-size: 13px; font-weight: bold;")
+        layout.addWidget(ip_info)
         
-        # Network mode selector - compact
+        layout.addSpacing(8)
+        
+        # Network mode selector
         mode_label = QLabel("Mode:")
-        mode_label.setStyleSheet("color: #00d4ff; font-size: 12pt; font-weight: bold;")
-        mode_label.setFixedHeight(20)
+        mode_label.setStyleSheet("color: #eaeaea; font-size: 16px; font-weight: bold;")
         layout.addWidget(mode_label)
         
         mode_combo = QComboBox()
         mode_combo.setObjectName("network_mode_combo")
-        mode_combo.addItem("🔄 DHCP (Automatic)", "dhcp")
-        mode_combo.addItem("✏️ Manual (Static IP)", "manual")
-        mode_combo.setFixedHeight(50)  # Smaller
+        mode_combo.addItem("DHCP (Automatic)", "dhcp")
+        mode_combo.addItem("Manual (Static IP)", "manual")
+        mode_combo.setMinimumHeight(60)  # Same as test channel
+        mode_combo.setMaxVisibleItems(2)  # Show both options
+        
+        # Make dropdown list larger with better spacing (same as test channel)
         mode_combo.view().setMinimumWidth(700)
-        mode_combo.view().setMinimumHeight(150)
-        mode_combo.view().setSpacing(5)
+        mode_combo.view().setMinimumHeight(200)  # Tall enough for 2 items
+        mode_combo.view().setSpacing(20)  # Good spacing between items
         mode_combo.view().setUniformItemSizes(True)
+        
+        mode_combo.setStyleSheet("""
+            QComboBox {
+                background-color: #2d3748;
+                color: white;
+                border: 2px solid rgba(0, 212, 255, 0.3);
+                border-radius: 6px;
+                padding: 12px;
+                font-size: 18px;
+                font-weight: bold;
+                min-height: 60px;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 40px;
+            }
+            QComboBox::down-arrow {
+                width: 20px;
+                height: 20px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #2d3748;
+                color: white;
+                selection-background-color: #00d4ff;
+                selection-color: #1a1a2e;
+                border: 2px solid rgba(0, 212, 255, 0.3);
+                font-size: 20px;
+                font-weight: bold;
+                padding: 15px;
+            }
+            QComboBox QAbstractItemView::item {
+                min-height: 80px;
+                padding: 15px;
+            }
+        """)
         
         # Set current mode in dropdown
         if is_static:
@@ -1461,226 +1359,248 @@ class MainWindow(QMainWindow):
         
         layout.addWidget(mode_combo)
         
-        # Manual configuration section
+        # Manual configuration section - using QFormLayout like SIP
         manual_config = QWidget()
         manual_layout = QVBoxLayout(manual_config)
-        manual_layout.setSpacing(8)
+        manual_layout.setSpacing(5)
         manual_layout.setContentsMargins(0, 10, 0, 0)
         
         # "Static IP" header
-        static_header = QLabel("Static IP")
-        static_header.setStyleSheet("color: white; font-size: 18pt; font-weight: bold;")
+        static_header = QLabel("Static IP Settings")
+        static_header.setStyleSheet("color: #00d4ff; font-size: 16px; font-weight: bold; margin-bottom: 5px;")
         manual_layout.addWidget(static_header)
         
-        # Each field as a horizontal layout with blue left border
-        def create_field_row(label_text, input_widget):
-            row = QWidget()
-            row.setStyleSheet("""
-                QWidget {
-                    background-color: #1e1e1e;
-                    border-left: 4px solid #00d4ff;
-                    border-radius: 4px;
-                }
-            """)
-            row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(15, 10, 15, 10)
-            row_layout.setSpacing(15)
-            
-            label = QLabel(label_text)
-            label.setStyleSheet("color: white; font-size: 14pt; border: none;")
-            label.setFixedWidth(140)
-            row_layout.addWidget(label)
-            
-            input_widget.setStyleSheet("""
-                QLineEdit {
-                    background-color: #2d2d2d;
-                    color: white;
-                    border: 1px solid #555;
-                    border-radius: 4px;
-                    padding: 8px;
-                    font-size: 14pt;
-                }
-                QLineEdit:focus {
-                    border: 1px solid #00d4ff;
-                }
-            """)
-            input_widget.setFixedHeight(45)
-            row_layout.addWidget(input_widget)
-            
-            return row
+        # Form layout for fields (same as SIP)
+        form_layout = QFormLayout()
+        form_layout.setSpacing(10)
+        form_layout.setLabelAlignment(Qt.AlignRight)
+        
+        # Style for all input fields (bigger text)
+        input_style = """
+            QLineEdit {
+                background-color: #2d3748;
+                color: white;
+                border: 2px solid rgba(0, 212, 255, 0.3);
+                border-radius: 6px;
+                padding: 12px;
+                font-size: 16px;
+                min-height: 45px;
+            }
+            QLineEdit:focus {
+                border: 2px solid rgba(0, 212, 255, 0.6);
+            }
+        """
+        
+        # Label style (bigger text)
+        label_style = "color: #eaeaea; font-size: 16px; font-weight: bold;"
         
         # IP Address
         ip_input = QLineEdit()
-        ip_input.setPlaceholderText("192.xxx.xxx.xxxx")
+        ip_input.setStyleSheet(input_style)
+        ip_input.setPlaceholderText("e.g., 192.168.1.221")
         if is_static and current_ip != "Unknown":
             ip_input.setText(current_ip)
         else:
             ip_input.setText("192.168.1.221")
-        manual_layout.addWidget(create_field_row("IP Adress:", ip_input))
+        ip_label = QLabel("IP Address:")
+        ip_label.setStyleSheet(label_style)
+        form_layout.addRow(ip_label, ip_input)
         
         # Subnet Mask
         subnet_input = QLineEdit()
-        subnet_input.setPlaceholderText("255.255.255.0")
+        subnet_input.setStyleSheet(input_style)
+        subnet_input.setPlaceholderText("e.g., 255.255.255.0")
         subnet_input.setText("255.255.255.0")
-        manual_layout.addWidget(create_field_row("Subnet Mask:", subnet_input))
+        subnet_label = QLabel("Subnet Mask:")
+        subnet_label.setStyleSheet(label_style)
+        form_layout.addRow(subnet_label, subnet_input)
         
         # Gateway
         gateway_input = QLineEdit()
-        gateway_input.setPlaceholderText("192.168.xxx.xxx")
+        gateway_input.setStyleSheet(input_style)
+        gateway_input.setPlaceholderText("e.g., 192.168.1.1")
         if is_static and current_gateway:
             gateway_input.setText(current_gateway)
         else:
             gateway_input.setText("192.168.1.1")
-        manual_layout.addWidget(create_field_row("Gateway:", gateway_input))
+        gateway_label = QLabel("Gateway:")
+        gateway_label.setStyleSheet(label_style)
+        form_layout.addRow(gateway_label, gateway_input)
         
         # DNS Server
         dns_input = QLineEdit()
-        dns_input.setPlaceholderText("8.8.8.8")
+        dns_input.setStyleSheet(input_style)
+        dns_input.setPlaceholderText("e.g., 8.8.8.8")
         if is_static and current_dns:
             dns_input.setText(current_dns)
         else:
             dns_input.setText("8.8.8.8")
-        manual_layout.addWidget(create_field_row("DNS:", dns_input))
+        dns_label = QLabel("DNS Server:")
+        dns_label.setStyleSheet(label_style)
+        form_layout.addRow(dns_label, dns_input)
+        
+        manual_layout.addLayout(form_layout)
         
         manual_config.setVisible(False)  # Hidden by default
         layout.addWidget(manual_config)
-        
-        # Buttons at bottom - always visible
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(15)
-        btn_layout.setContentsMargins(0, 8, 0, 0)
-        
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.setFixedHeight(55)
-        cancel_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #6c757d;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 18pt;
-                font-weight: bold;
-            }
-            QPushButton:pressed {
-                background-color: #7d8a94;
-            }
-        """)
-        cancel_btn.clicked.connect(network_dialog.reject)
-        btn_layout.addWidget(cancel_btn)
-        
-        save_btn = QPushButton("Save & Restart")
-        save_btn.setFixedHeight(55)
-        save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 18pt;
-                font-weight: bold;
-            }
-            QPushButton:pressed {
-                background-color: #34ce57;
-            }
-        """)
-        save_btn.clicked.connect(network_dialog.accept)
-        btn_layout.addWidget(save_btn)
-        
-        layout.addLayout(btn_layout)
         
         # Show manual config if currently using static IP
         if is_static:
             manual_config.setVisible(True)
         
-        # Create keyboard dialog (separate window, positioned to the left of config dialog)
-        keyboard_dialog = QDialog(self)
-        keyboard_dialog.setWindowTitle("Keyboard")
-        keyboard_dialog.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-        keyboard_dialog.setModal(False)  # Non-blocking
-        keyboard_dialog.setFixedSize(950, 280)
-        keyboard_dialog.setStyleSheet("""
-            QDialog {
-                background-color: #1a1a1a;
-                border: 3px solid #00d4ff;
-                border-radius: 12px;
-            }
-        """)
+        # Store input fields and active input for keyboard handling (same pattern as SIP)
+        network_dialog.input_fields = [ip_input, subnet_input, gateway_input, dns_input]
+        network_dialog.active_input = None
         
-        keyboard_layout = QVBoxLayout(keyboard_dialog)
-        keyboard_layout.setContentsMargins(10, 10, 10, 10)
+        # Event filter function for keyboard handling (matches SIP pattern)
+        def network_event_filter(obj, event):
+            """Handle focus events to track active input field and show/hide keyboard"""
+            if event.type() == QEvent.FocusIn:
+                if isinstance(obj, QLineEdit):
+                    network_dialog.active_input = obj
+                    # Highlight active field (bigger font)
+                    obj.setStyleSheet("""
+                        QLineEdit {
+                            background-color: #2d3748;
+                            color: white;
+                            border: 2px solid #00d4ff;
+                            border-radius: 6px;
+                            padding: 12px;
+                            font-size: 16px;
+                            min-height: 45px;
+                        }
+                    """)
+                    # Show keyboard when text field is focused
+                    keyboard.show()
+            elif event.type() == QEvent.FocusOut:
+                if isinstance(obj, QLineEdit):
+                    # Reset field style (bigger font)
+                    obj.setStyleSheet("""
+                        QLineEdit {
+                            background-color: #2d3748;
+                            color: white;
+                            border: 2px solid rgba(0, 212, 255, 0.3);
+                            border-radius: 6px;
+                            padding: 12px;
+                            font-size: 16px;
+                            min-height: 45px;
+                        }
+                    """)
+                    # Hide keyboard when focus leaves text field (with delay to allow keyboard clicks)
+                    QTimer.singleShot(200, lambda: check_hide_keyboard())
+            return False
         
-        # Add keyboard
-        keyboard = TouchKeyboard()
-        keyboard_layout.addWidget(keyboard)
+        def check_hide_keyboard():
+            """Check if keyboard should be hidden (no text field has focus)"""
+            for field in network_dialog.input_fields:
+                if field.hasFocus():
+                    return  # Don't hide, a field still has focus
+            keyboard.hide()
         
-        # Track current active input
-        self.active_input = None
+        # Install event filter on input fields
+        ip_input.installEventFilter(network_dialog)
+        subnet_input.installEventFilter(network_dialog)
+        gateway_input.installEventFilter(network_dialog)
+        dns_input.installEventFilter(network_dialog)
         
-        # Handle keyboard input
-        def on_key_pressed(key):
-            if not self.active_input:
+        # Override dialog's eventFilter to use our function
+        network_dialog.eventFilter = network_event_filter
+        
+        # Add spacing before info label
+        layout.addSpacing(10)
+        
+        # Info label (bigger font)
+        info_label = QLabel("Tap a field to show keyboard")
+        info_label.setStyleSheet("color: #ffa500; font-size: 13px; font-weight: bold; padding: 5px 0px;")
+        info_label.setWordWrap(True)
+        layout.addWidget(info_label)
+        
+        # Add spacing before keyboard
+        layout.addSpacing(8)
+        
+        # Virtual Keyboard (same pattern as SIP settings - built into dialog)
+        keyboard = VirtualKeyboard(network_dialog)
+        
+        def handle_keyboard_key(key):
+            """Handle virtual keyboard key press"""
+            if not network_dialog.active_input:
+                # Default to first input field
+                if network_dialog.input_fields:
+                    network_dialog.active_input = network_dialog.input_fields[0]
+                    network_dialog.active_input.setFocus()
                 return
-                
-            if key == 'DONE':
-                keyboard_dialog.hide()
-                self.active_input = None
-            elif key == 'CANCEL':
-                keyboard_dialog.hide()
-                self.active_input = None
-            elif key == 'CLEAR':
-                self.active_input.clear()
-            elif key == '\b':  # Backspace
-                text = self.active_input.text()
-                self.active_input.setText(text[:-1])
+            
+            # Keep focus on active input
+            if not network_dialog.active_input.hasFocus():
+                network_dialog.active_input.setFocus()
+            
+            if key == '\b':  # Backspace
+                network_dialog.active_input.backspace()
+            elif key == '\n':  # Done - hide keyboard
+                keyboard.hide()
             else:
-                self.active_input.insert(key)
+                network_dialog.active_input.insert(key)
         
-        keyboard.key_pressed.connect(on_key_pressed)
+        keyboard.key_pressed.connect(handle_keyboard_key)
+        keyboard.close_requested.connect(lambda: keyboard.hide())
+        keyboard.hide()  # Hide keyboard initially
+        layout.addWidget(keyboard)
         
-        # Show keyboard when input fields are clicked
-        def show_keyboard_for_input(input_widget):
-            self.active_input = input_widget
-            if not keyboard_dialog.isVisible():
-                keyboard_dialog.show()
+        # Add spacing between keyboard and buttons
+        layout.addSpacing(8)
         
-        # Connect input fields to show keyboard
-        ip_input.mousePressEvent = lambda e: show_keyboard_for_input(ip_input)
-        subnet_input.mousePressEvent = lambda e: show_keyboard_for_input(subnet_input)
-        gateway_input.mousePressEvent = lambda e: show_keyboard_for_input(gateway_input)
-        dns_input.mousePressEvent = lambda e: show_keyboard_for_input(dns_input)
+        # Buttons - always visible at bottom
+        button_layout = QHBoxLayout()
+        button_layout.setContentsMargins(0, 5, 0, 0)
+        button_layout.addStretch()
         
-        # Position dialogs on screen
+        save_btn = QPushButton("Save & Restart")
+        save_btn.setFocusPolicy(Qt.NoFocus)
+        save_btn.setMinimumHeight(50)
+        save_btn.setMinimumWidth(150)
+        save_btn.setStyleSheet("font-size: 16px; font-weight: bold;")
+        save_btn.clicked.connect(network_dialog.accept)
+        button_layout.addWidget(save_btn)
+        
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setFocusPolicy(Qt.NoFocus)
+        cancel_btn.setMinimumHeight(50)
+        cancel_btn.setMinimumWidth(100)
+        cancel_btn.setStyleSheet("font-size: 16px; font-weight: bold;")
+        cancel_btn.clicked.connect(network_dialog.reject)
+        button_layout.addWidget(cancel_btn)
+        
+        layout.addLayout(button_layout)
+        
+        # Position dialog at top of screen so keyboard is fully visible
         from PyQt5.QtWidgets import QApplication
         screen_geometry = QApplication.primaryScreen().geometry()
+        network_dialog.adjustSize()
         
-        # Position config dialog on right side
-        x_position_config = screen_geometry.width() - network_dialog.width() - 50
-        y_position_config = (screen_geometry.height() - network_dialog.height()) // 2
-        network_dialog.move(x_position_config, y_position_config)
+        # Position at top-right of screen
+        x_position = screen_geometry.width() - network_dialog.width() - 50
+        y_position = 20  # Near top of screen
+        network_dialog.move(x_position, y_position)
         
-        # Position keyboard to the left of config dialog
-        x_position_keyboard = x_position_config - keyboard_dialog.width() - 20
-        y_position_keyboard = y_position_config + (network_dialog.height() - keyboard_dialog.height()) // 2
-        keyboard_dialog.move(x_position_keyboard, y_position_keyboard)
-        
-        # Show keyboard dialog when manual mode is shown
+        # Show keyboard when manual mode is shown
         def on_mode_changed_with_keyboard(index):
             is_manual = mode_combo.currentData() == "manual"
             manual_config.setVisible(is_manual)
-            if is_manual:
-                keyboard_dialog.show()
-            else:
-                keyboard_dialog.hide()
+            if not is_manual:
+                # Hide keyboard when switching to DHCP
+                keyboard.hide()
+            
+            # Resize and reposition dialog after mode change
+            network_dialog.adjustSize()
+            screen_geometry = QApplication.primaryScreen().geometry()
+            x_position = screen_geometry.width() - network_dialog.width() - 50
+            y_position = 20
+            network_dialog.move(x_position, y_position)
         
         mode_combo.currentIndexChanged.connect(on_mode_changed_with_keyboard)
         
-        # Show keyboard if starting with static IP
-        if is_static:
-            keyboard_dialog.show()
-        
         # Handle dialog accepted (Save & Restart button)
         def on_dialog_accepted():
-            keyboard_dialog.close()
             # Close parent settings dialog first to prevent blocking
             if parent_dialog:
                 parent_dialog.close()
@@ -1702,12 +1622,14 @@ class MainWindow(QMainWindow):
             
             network_dialog.close()
         
-        # Handle dialog rejected (Cancel button)
+        # Handle dialog rejected (Cancel button - backup handler)
         def on_dialog_rejected():
-            keyboard_dialog.close()
+            logger.info("Network dialog rejected signal received")
             network_dialog.close()
+            if parent_dialog:
+                parent_dialog.close()
         
-        # Connect signals
+        # Connect signals (backup handlers)
         network_dialog.accepted.connect(on_dialog_accepted)
         network_dialog.rejected.connect(on_dialog_rejected)
         
