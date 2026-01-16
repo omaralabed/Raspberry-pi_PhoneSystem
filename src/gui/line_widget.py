@@ -5,7 +5,7 @@ Line Widget - Individual Phone Line Status Display
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QLabel, QFrame, QComboBox, QMessageBox)
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from PyQt5.QtGui import QFont
 import logging
 
@@ -271,9 +271,14 @@ class LineWidget(QWidget):
             }
         """)
         
-        # Position the dialog below this line widget
-        widget_pos = self.mapToGlobal(self.rect().bottomLeft())
-        msg_box.move(widget_pos.x(), widget_pos.y() + 10)
+        # Center dialog on this line widget
+        msg_box.adjustSize()
+        widget_rect = self.rect()
+        widget_center = self.mapToGlobal(widget_rect.center())
+        dialog_size = msg_box.size()
+        dialog_x = widget_center.x() - dialog_size.width() // 2
+        dialog_y = widget_center.y() - dialog_size.height() // 2
+        msg_box.move(dialog_x, dialog_y)
         
         # Show dialog and check response
         msg_box.exec_()
