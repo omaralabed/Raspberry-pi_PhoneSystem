@@ -1,0 +1,462 @@
+/* ProComm Phone System - Main Stylesheet */
+/* All UI elements designed for touchscreen use with large fonts and spacing */
+
+/* =================================================================
+   GLOBAL SETTINGS
+   ================================================================= */
+
+QWidget {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #ffffff;
+}
+
+/* =================================================================
+   COMBO BOXES - All dropdowns use same sizing to fill entire space
+   ================================================================= */
+
+QComboBox {
+    background-color: #2a2a2a;
+    border: 2px solid #404040;
+    border-radius: 4px;
+    padding: 8px 15px;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 18px;
+    min-height: 50px;
+}
+
+QComboBox:hover {
+    border-color: #ff6b35;
+    background-color: #333333;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 40px;
+}
+
+QComboBox::down-arrow {
+    image: none;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 12px solid #ffffff;
+    margin-right: 12px;
+}
+
+/* Dropdown list styling - NO EMPTY SPACE */
+QComboBox QAbstractItemView {
+    background-color: #2a2a2a;
+    color: #ffffff;
+    selection-background-color: #ff6b35;
+    selection-color: #1a1a1a;
+    border: 3px solid #ff6b35;
+    border-radius: 8px;
+    padding: 0px;
+    font-size: 24pt;
+    font-weight: bold;
+}
+
+QComboBox QAbstractItemView::item {
+    padding: 22px 30px;
+    height: 75px;
+    min-height: 75px;
+    max-height: 75px;
+    margin: 15px 0px;
+    border-bottom: 2px solid rgba(255, 107, 53, 0.3);
+    color: #ffffff;
+}
+
+QComboBox QAbstractItemView::item:hover {
+    background-color: rgba(255, 107, 53, 0.3);
+    color: #ffffff;
+}
+
+QComboBox QAbstractItemView::item:selected {
+    background-color: #ff6b35;
+    color: #1a1a1a;
+}
+
+/* =================================================================
+   BUTTONS - Large touchscreen-friendly buttons
+   ================================================================= */
+
+QPushButton {
+    background-color: #2a2a2a;
+    border: 2px solid #404040;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 18px;
+    padding: 15px 25px;
+    min-height: 60px;
+}
+
+QPushButton:hover {
+    background-color: #333333;
+    border-color: #ff6b35;
+}
+
+QPushButton:pressed {
+    background-color: #1a1a1a;
+}
+
+QPushButton:disabled {
+    background-color: #1a1a1a;
+    color: #666666;
+    border-color: #333333;
+}
+
+/* =================================================================
+   DIALOGS - Large dialogs with big fonts
+   ================================================================= */
+
+QDialog {
+    background-color: #1a1a1a;
+}
+
+QDialogButtonBox QPushButton {
+    font-size: 28pt;
+    min-height: 90px;
+    padding: 20px 40px;
+    margin-left: 40px;
+    margin-right: 40px;
+}
+
+QLabel {
+    color: #ffffff;
+    font-size: 16px;
+}
+
+/* =================================================================
+   LINE WIDGETS - Phone line display
+   ================================================================= */
+
+/* Line container */
+QFrame#line_frame {
+    background-color: #2a2a2a;
+    border: 2px solid #404040;
+    border-radius: 8px;
+}
+
+QFrame#line_frame:hover {
+    border-color: #ff6b35;
+}
+
+/* Line labels */
+QLabel#line_number {
+    color: #ff6b35;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+QLabel#line_status {
+    color: #00ff00;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+QLabel#line_info {
+    color: #cccccc;
+    font-size: 16px;
+}
+
+/* =================================================================
+   ACTION BUTTONS - DIAL and HANG UP buttons
+   ================================================================= */
+
+QPushButton#action_btn_idle {
+    background-color: #28a745;
+    border: 3px solid #1e7e34;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 20px;
+    min-height: 80px;
+    border-radius: 10px;
+}
+
+QPushButton#action_btn_idle:hover {
+    background-color: #34ce57;
+    border-color: #28a745;
+}
+
+QPushButton#action_btn_active {
+    background-color: #dc3545;
+    border: 3px solid #a71d2a;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 20px;
+    min-height: 80px;
+    border-radius: 10px;
+}
+
+QPushButton#action_btn_active:hover {
+    background-color: #e74c3c;
+    border-color: #dc3545;
+}
+
+/* =================================================================
+   DIALER WIDGET - Popup dialer
+   ================================================================= */
+
+QPushButton#dialer_digit {
+    background-color: #2a2a2a;
+    border: 2px solid #404040;
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 32px;
+    font-weight: bold;
+    min-height: 90px;
+    min-width: 90px;
+}
+
+QPushButton#dialer_digit:hover {
+    background-color: #ff6b35;
+    border-color: #ff6b35;
+}
+
+QPushButton#dialer_digit:pressed {
+    background-color: #e55a25;
+}
+
+QPushButton#dialer_call {
+    background-color: #28a745;
+    border: 3px solid #1e7e34;
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    padding: 25px;
+    min-height: 100px;
+    border-radius: 12px;
+}
+
+QPushButton#dialer_call:hover {
+    background-color: #34ce57;
+}
+
+QPushButton#dialer_cancel {
+    background-color: #6c757d;
+    border: 3px solid #545b62;
+    color: white;
+    font-size: 26px;
+    font-weight: bold;
+    padding: 20px;
+    min-height: 80px;
+    border-radius: 10px;
+}
+
+QPushButton#dialer_cancel:hover {
+    background-color: #7d8a94;
+}
+
+QLineEdit#dialer_display {
+    background-color: #1a1a1a;
+    border: 3px solid #404040;
+    border-radius: 8px;
+    color: #00d4ff;
+    font-size: 42px;
+    font-weight: bold;
+    padding: 20px;
+    min-height: 80px;
+}
+
+/* =================================================================
+   TEST CONTROLS - Bottom panel test controls
+   ================================================================= */
+
+QPushButton#hold_test_btn {
+    background-color: #007bff;
+    border: 3px solid #0056b3;
+    color: white;
+    font-size: 22px;
+    font-weight: bold;
+    padding: 15px 30px;
+    border-radius: 8px;
+}
+
+QPushButton#hold_test_btn:hover {
+    background-color: #0056b3;
+    border-color: #004085;
+}
+
+QPushButton#hold_test_btn:pressed {
+    background-color: #00d4ff;
+    border-color: #00b8e6;
+}
+
+QPushButton#settings_btn {
+    background-color: #6c757d;
+    border: 2px solid #545b62;
+    color: white;
+    font-size: 32px;
+    font-weight: bold;
+    min-width: 80px;
+    min-height: 80px;
+    border-radius: 8px;
+}
+
+QPushButton#settings_btn:hover {
+    background-color: #7d8a94;
+    border-color: #6c757d;
+}
+
+/* Test channel combo - specific sizing */
+QComboBox#test_channel_combo {
+    background-color: #1a1a1a;
+    border: 2px solid #404040;
+    border-radius: 4px;
+    padding: 12px 20px;
+    color: #00d4ff;
+    font-weight: bold;
+    font-size: 22pt;
+    min-height: 60px;
+}
+
+QComboBox#test_channel_combo:hover {
+    border-color: #00d4ff;
+    background-color: #2a2a2a;
+}
+
+QComboBox#test_channel_combo::down-arrow {
+    border-top-color: #00d4ff;
+}
+
+QComboBox#test_channel_combo QAbstractItemView {
+    background-color: #2a2a2a;
+    color: #ffffff;
+    selection-background-color: #00d4ff;
+    selection-color: #1a1a1a;
+    border: 3px solid #00d4ff;
+    border-radius: 8px;
+    padding: 0px;
+    font-size: 28pt;
+    font-weight: bold;
+}
+
+QComboBox#test_channel_combo QAbstractItemView::item {
+    padding: 28px 40px;
+    height: 85px;
+    min-height: 85px;
+    max-height: 85px;
+    margin: 20px 0px;
+    border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+    color: #ffffff;
+}
+
+QComboBox#test_channel_combo QAbstractItemView::item:hover {
+    background-color: rgba(0, 212, 255, 0.3);
+    color: #ffffff;
+}
+
+QComboBox#test_channel_combo QAbstractItemView::item:selected {
+    background-color: #00d4ff;
+    color: #1a1a1a;
+}
+
+/* =================================================================
+   LINE SELECTOR - Top dropdown for line selection
+   Same design as test channel combo
+   ================================================================= */
+
+QComboBox#line_selector {
+    background-color: #1a1a1a;
+    border: 2px solid #404040;
+    border-radius: 4px;
+    padding: 12px 20px;
+    color: #ff6b35;
+    font-weight: bold;
+    font-size: 22pt;
+    min-height: 60px;
+}
+
+QComboBox#line_selector:hover {
+    border-color: #ff6b35;
+    background-color: #2a2a2a;
+}
+
+QComboBox#line_selector::down-arrow {
+    image: none;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 15px solid #ff6b35;
+    margin-right: 15px;
+}
+
+QComboBox#line_selector QAbstractItemView {
+    background-color: #2a2a2a;
+    color: #ffffff;
+    selection-background-color: #ff6b35;
+    selection-color: #1a1a1a;
+    border: 3px solid #ff6b35;
+    border-radius: 8px;
+    padding: 0px;
+    font-size: 28pt;
+    font-weight: bold;
+}
+
+QComboBox#line_selector QAbstractItemView::item {
+    padding: 28px 40px;
+    height: 85px;
+    min-height: 85px;
+    max-height: 85px;
+    margin: 20px 0px;
+    border-bottom: 2px solid rgba(255, 107, 53, 0.3);
+    color: #ffffff;
+}
+
+QComboBox#line_selector QAbstractItemView::item:hover {
+    background-color: rgba(255, 107, 53, 0.3);
+    color: #ffffff;
+}
+
+QComboBox#line_selector QAbstractItemView::item:selected {
+    background-color: #ff6b35;
+    color: #1a1a1a;
+}
+
+/* =================================================================
+   SCROLLBARS - Large scrollbars for touchscreen
+   ================================================================= */
+
+QScrollBar:vertical {
+    border: none;
+    background: #1a1a1a;
+    width: 20px;
+    margin: 0px;
+}
+
+QScrollBar::handle:vertical {
+    background: #404040;
+    min-height: 40px;
+    border-radius: 10px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #ff6b35;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+QScrollBar:horizontal {
+    border: none;
+    background: #1a1a1a;
+    height: 20px;
+    margin: 0px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #404040;
+    min-width: 40px;
+    border-radius: 10px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: #ff6b35;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0px;
+}

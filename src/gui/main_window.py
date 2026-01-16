@@ -6,6 +6,7 @@ Main Window - TouchScreen GUI
 import sys
 import json
 import os
+from pathlib import Path
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QGridLayout, QPushButton, QLabel, QFrame, QMessageBox, 
                              QComboBox, QDialog, QLineEdit, QSpinBox, QFormLayout, 
@@ -20,6 +21,17 @@ from .audio_widget import AudioWidget
 from .sip_settings import SIPSettingsDialog
 
 logger = logging.getLogger(__name__)
+
+
+def load_stylesheet():
+    """Load the main CSS stylesheet"""
+    css_path = Path(__file__).parent.parent.parent / 'config' / 'styles.css'
+    try:
+        with open(css_path, 'r') as f:
+            return f.read()
+    except Exception as e:
+        logger.error(f"Failed to load stylesheet: {e}")
+        return ""
 
 
 class VirtualKeyboard(QWidget):
@@ -500,6 +512,12 @@ class MainWindow(QMainWindow):
         # Cache for line selector state
         self._last_available_lines = None
         
+        # Load and apply global stylesheet
+        stylesheet = load_stylesheet()
+        if stylesheet:
+            self.setStyleSheet(stylesheet)
+            logger.info("Loaded global stylesheet from config/styles.css")
+        
         # UI Setup
         self.setWindowTitle("Phone System - IFB/PL")
         
@@ -514,8 +532,7 @@ class MainWindow(QMainWindow):
         self.showFullScreen()
         logger.info(f"Window geometry after showFullScreen: {self.geometry().width()}x{self.geometry().height()}")
         
-        # Apply dark theme
-        self._apply_theme()
+        # NOTE: _apply_theme() removed - using CSS file instead (config/styles.css)
         
         # Create UI
         self._create_ui()
@@ -559,39 +576,19 @@ class MainWindow(QMainWindow):
         central_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setCentralWidget(central_widget)
         
-        main_layout = QHBoxLayout(central_widget)
+        main_layout = QVBoxLayout(central_widget)
         main_layout.setContentsMargins(3, 3, 3, 3)
         main_layout.setSpacing(5)
         
-        # Left panel: Line status widgets
-        left_panel = self._create_line_panel()
-        left_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        main_layout.addWidget(left_panel, stretch=2)
         
-        # Right panel: Dialer and audio routing (in scroll area for small screens)
-        right_scroll = QScrollArea()
-        right_scroll.setWidgetResizable(True)
-        right_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        right_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        right_scroll.setStyleSheet("""
-            QScrollArea {
-                border: none;
-                background: transparent;
-            }
-            QScrollBar:vertical {
-                background: rgba(255, 255, 255, 0.1);
-                width: 8px;
-                border-radius: 4px;
-            }
-            QScrollBar::handle:vertical {
-                background: rgba(0, 212, 255, 0.5);
-                border-radius: 4px;
-                min-height: 30px;
-            }
-        """)
-        right_panel = self._create_control_panel()
-        right_scroll.setWidget(right_panel)
-        main_layout.addWidget(right_scroll, stretch=1)
+        # Top: Line status widgets (takes most space - now full width)
+        line_panel = self._create_line_panel()
+        line_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        main_layout.addWidget(line_panel, stretch=10)
+        
+        # Bottom: Compact test panel (Hold to Test + Channel + Settings)
+        bottom_panel = self._create_bottom_test_panel()
+        main_layout.addWidget(bottom_panel)
     
     def _create_line_panel(self) -> QWidget:
         """Create panel with 8 line status widgets - Broadcast style"""
@@ -648,39 +645,18 @@ class MainWindow(QMainWindow):
         
         # Line selection dropdown - shows only available lines
         self.line_selector = QComboBox()
+        self.line_selector.setObjectName("line_selector")  # Use CSS from styles.css
         self.line_selector.setFont(QFont("Segoe UI", 11, QFont.Bold))
-        self.line_selector.setMinimumHeight(50)
+        self.line_selector.setMinimumHeight(60)
         self.line_selector.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.line_selector.currentIndexChanged.connect(self._on_line_selector_changed)
-        self.line_selector.setStyleSheet("""
-            QComboBox {
-                background-color: #1a1a1a;
-                border: 2px solid #404040;
-                border-radius: 4px;
-                padding: 12px 15px;
-                color: #ff6b35;
-                font-weight: bold;
-                font-size: 11pt;
-            }
-            QComboBox:hover {
-                border-color: #ff6b35;
-                background-color: #2a2a2a;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 30px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #2a2a2a;
-                color: #ffffff;
-                selection-background-color: #ff6b35;
-                selection-color: #1a1a1a;
-                border: 2px solid #404040;
-                border-radius: 4px;
-                padding: 5px;
-                font-size: 11pt;
-            }
-        """)
+        
+        # Make dropdown list fill entire space - same as test channel
+        self.line_selector.view().setMinimumWidth(600)
+        self.line_selector.view().setMinimumHeight(752)  # Same as test channel
+        self.line_selector.view().setSpacing(28)  # Big spacing between items
+        self.line_selector.view().setUniformItemSizes(True)
+        
         top_layout.addWidget(self.line_selector, stretch=1)
         
         # Settings button (gear icon only) - Broadcast style
@@ -714,6 +690,121 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.audio_widget)
         
         return panel
+    
+    def _create_bottom_test_panel(self) -> QWidget:
+        """Create compact bottom panel with Hold to Test button, channel selector, and settings"""
+        panel = QFrame()
+        panel.setStyleSheet("""
+            QFrame {
+                background-color: #2a2a2a;
+                border: 1px solid #404040;
+                border-radius: 4px;
+                padding: 8px;
+            }
+        """)
+        panel.setMaximumHeight(80)
+        
+        layout = QHBoxLayout(panel)
+        layout.setContentsMargins(10, 5, 10, 5)
+        layout.setSpacing(15)
+        
+        # Channel selector label
+        channel_label = QLabel("Test Channel:")
+        channel_label.setStyleSheet("color: #ff6b35; font-weight: bold; font-size: 11pt;")
+        layout.addWidget(channel_label)
+        
+        # Channel dropdown (combobox) - vertical list picker
+        self.test_channel_combo = QComboBox()
+        self.test_channel_combo.setObjectName("test_channel_combo")  # Use CSS from styles.css
+        self.test_channel_combo.setMinimumWidth(150)
+        self.test_channel_combo.setMinimumHeight(60)
+        self.test_channel_combo.setMaxVisibleItems(8)  # Show all 8 channels at once
+        # Add all 8 channels
+        for i in range(1, 9):
+            self.test_channel_combo.addItem(f"Channel {i}", i)
+        
+        # Force items to fill entire dropdown list height - NO EMPTY SPACE
+        # Keep list at good size, items will spread out to fill it
+        self.test_channel_combo.view().setMinimumWidth(500)
+        self.test_channel_combo.view().setMinimumHeight(752)  # Fixed list size
+        self.test_channel_combo.view().setSpacing(28)  # BIGGER spacing to fill ALL the way to bottom
+        self.test_channel_combo.view().setUniformItemSizes(True)
+        
+        layout.addWidget(self.test_channel_combo)
+        
+        # Hold to Test button
+        self.hold_test_btn = QPushButton("🔊 Hold to Test")
+        self.hold_test_btn.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        self.hold_test_btn.setMinimumHeight(50)
+        self.hold_test_btn.setMinimumWidth(200)
+        self.hold_test_btn.pressed.connect(self._on_hold_test_pressed)
+        self.hold_test_btn.released.connect(self._on_hold_test_released)
+        self.hold_test_btn.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                            stop:0 #00d4ff, stop:1 #0088cc);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                            stop:0 #00e4ff, stop:1 #0099dd);
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                            stop:0 #2ed573, stop:1 #26de81);
+            }
+        """)
+        layout.addWidget(self.hold_test_btn)
+        
+        layout.addStretch()
+        
+        # Settings button (moved from top)
+        settings_btn = QPushButton("⚙")
+        settings_btn.setFont(QFont("Segoe UI", 18, QFont.Bold))
+        settings_btn.setMinimumSize(55, 55)
+        settings_btn.setMaximumSize(65, 65)
+        settings_btn.clicked.connect(self._show_settings)
+        settings_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #1a1a1a;
+                border: 2px solid #404040;
+                border-radius: 4px;
+                color: #ff6b35;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2a2a2a;
+                border-color: #ff6b35;
+            }
+            QPushButton:pressed {
+                background-color: #3a3a3a;
+            }
+        """)
+        layout.addWidget(settings_btn)
+        
+        return panel
+    
+    def _on_hold_test_pressed(self):
+        """Start test tone when button pressed"""
+        if not self.audio_router:
+            logger.warning("Cannot test audio: audio router not available")
+            return
+        
+        channel = self.test_channel_combo.currentData()  # Get selected channel number
+        logger.info(f"Hold to Test pressed - starting tone on channel {channel}")
+        self.audio_router.start_continuous_tone(channel)
+    
+    def _on_hold_test_released(self):
+        """Stop test tone when button released"""
+        if not self.audio_router:
+            return
+        
+        logger.info("Hold to Test released - stopping tone")
+        self.audio_router.stop_continuous_tone()
     
     def _on_line_selector_changed(self, index: int):
         """Handle line selection from dropdown"""

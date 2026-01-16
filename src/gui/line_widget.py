@@ -130,57 +130,20 @@ class LineWidget(QWidget):
         
         # Audio channel picker with modern styling
         self.channel_picker = QComboBox()
-        # Remove fixed sizes - let it adapt
+        self.channel_picker.setObjectName("channel_picker")  # Use CSS from styles.css
+        self.channel_picker.setMinimumHeight(50)
         self.channel_picker.addItem("🔇 None ▼", 0)  # No output with icon and down arrow
         for i in range(1, 9):
             self.channel_picker.addItem(f"🔊 {i}", i)
         self.channel_picker.setCurrentIndex(0)  # Default to None (matches phone_line default)
         self.channel_picker.currentIndexChanged.connect(self._on_channel_changed)
-        self.channel_picker.setStyleSheet("""
-            QComboBox {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #4a5568,
-                    stop:1 #2d3748
-                );
-                border: 2px solid rgba(255, 255, 255, 0.2);
-                border-radius: 8px;
-                padding: 8px 12px;
-                color: white;
-                font-size: 14px;
-                font-weight: bold;
-                font-family: 'Segoe UI';
-            }
-            QComboBox:hover {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #5a6578,
-                    stop:1 #3d4758
-                );
-                border: 2px solid rgba(0, 212, 255, 0.5);
-            }
-            QComboBox::drop-down {
-                subcontrol-origin: padding;
-                subcontrol-position: center right;
-                width: 0px;
-                border: none;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                width: 0px;
-                height: 0px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #2d3748;
-                color: white;
-                selection-background-color: #00d4ff;
-                selection-color: #1a1a2e;
-                border: 2px solid rgba(0, 212, 255, 0.3);
-                border-radius: 6px;
-                padding: 5px;
-                font-size: 12px;
-            }
-        """)
+        
+        # Make dropdown list fill space - 9 items (None + 8 channels)
+        self.channel_picker.view().setMinimumWidth(500)
+        self.channel_picker.view().setMinimumHeight(800)  # 9 items with spacing
+        self.channel_picker.view().setSpacing(22)  # Spacing between items
+        self.channel_picker.view().setUniformItemSizes(True)
+        
         button_row.addWidget(self.channel_picker)
         
         # Hangup button next to picker with safe spacing
@@ -244,17 +207,17 @@ class LineWidget(QWidget):
         
         # Create layout
         layout = QVBoxLayout(dialog)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(20)
+        layout.setContentsMargins(25, 25, 25, 25)
+        layout.setSpacing(25)
         
         # Line label
         line_label = QLabel(f"Line {self.line.line_id}")
         line_label.setStyleSheet("""
             QLabel {
                 color: #ff6b35;
-                font-size: 28px;
+                font-size: 36px;
                 font-weight: bold;
-                padding: 10px;
+                padding: 15px;
             }
         """)
         line_label.setAlignment(Qt.AlignCenter)
@@ -280,11 +243,12 @@ class LineWidget(QWidget):
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                                             stop:0 #555555, stop:1 #444444);
                 color: white;
-                border: 2px solid #666666;
-                border-radius: 8px;
-                padding: 15px;
-                font-size: 18px;
+                border: 3px solid #666666;
+                border-radius: 10px;
+                padding: 25px;
+                font-size: 26px;
                 font-weight: bold;
+                min-height: 80px;
             }
             QPushButton:hover {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -327,30 +291,41 @@ class LineWidget(QWidget):
         cancel_btn = msg_box.addButton('Cancel', QMessageBox.RejectRole)
         msg_box.setDefaultButton(cancel_btn)
         
-        # Style the message box for better visibility
+        # Make dialog LARGE like dial popup (comfortable for touchscreen)
         msg_box.setStyleSheet("""
             QMessageBox {
                 background-color: #2a2a2a;
                 color: white;
-                font-size: 18px;
+                font-size: 32px;
+                min-width: 900px;
+                min-height: 600px;
             }
             QMessageBox QLabel {
                 color: white;
-                font-size: 20px;
+                font-size: 36px;
                 font-weight: bold;
-                min-width: 400px;
-                min-height: 80px;
+                min-width: 800px;
+                min-height: 250px;
+                padding: 50px;
+                line-height: 1.8;
+            }
+            QMessageBox QDialogButtonBox {
+                spacing: 50px;
             }
             QPushButton {
                 background-color: #4a4a4a;
                 color: white;
-                border: 2px solid #666;
-                border-radius: 8px;
-                padding: 15px 30px;
-                font-size: 18px;
+                border: 3px solid #666;
+                border-radius: 12px;
+                padding: 30px 60px;
+                font-size: 28px;
                 font-weight: bold;
-                min-width: 120px;
-                min-height: 50px;
+                min-width: 250px;
+                min-height: 90px;
+                margin-left: 40px;
+                margin-right: 40px;
+                margin-top: 20px;
+                margin-bottom: 20px;
             }
             QPushButton:hover {
                 background-color: #5a5a5a;
