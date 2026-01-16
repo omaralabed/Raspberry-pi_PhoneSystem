@@ -1,0 +1,18 @@
+[Unit]
+Description=Touchscreen Monitor and Auto-Recovery Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/procomm/ProComm
+ExecStart=/home/procomm/ProComm/monitor_touchscreen.sh
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
