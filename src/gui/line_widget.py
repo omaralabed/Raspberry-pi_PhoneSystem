@@ -48,28 +48,20 @@ class LineWidget(QWidget):
         logger.debug(f"Line widget created for line {line.line_id}")
     
     def _create_ui(self):
-        """Create line widget UI"""
+        """Create line widget UI - Broadcast professional style"""
         # No fixed height - fully adaptive to available space
         
-        # Main frame with modern styling
+        # Main frame with broadcast styling
         self.frame = QFrame(self)
         self.frame.setStyleSheet("""
             QFrame {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(255, 255, 255, 0.08),
-                    stop:1 rgba(255, 255, 255, 0.04)
-                );
-                border: 2px solid rgba(255, 255, 255, 0.15);
-                border-radius: 10px;
+                background-color: #2d2420;
+                border: 1px solid #404040;
+                border-radius: 4px;
             }
             QFrame:hover {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(0, 212, 255, 0.2),
-                    stop:1 rgba(0, 212, 255, 0.1)
-                );
-                border: 2px solid rgba(0, 212, 255, 0.4);
+                background-color: #3a332d;
+                border-color: #ff6b35;
             }
         """)
         
@@ -91,7 +83,7 @@ class LineWidget(QWidget):
         line_label.setFont(QFont("Segoe UI", 14, QFont.Bold))
         line_label.setStyleSheet("""
             QLabel {
-                color: #00d4ff;
+                color: #ff6b35;
                 padding: 2px 5px;
             }
         """)
@@ -104,10 +96,10 @@ class LineWidget(QWidget):
         self.audio_label.setAlignment(Qt.AlignCenter)
         self.audio_label.setStyleSheet("""
             QLabel {
-                color: #4ecdc4;
-                background: rgba(78, 205, 196, 0.2);
+                color: #ffffff;
+                background-color: #0ea5e9;
                 padding: 5px 10px;
-                border-radius: 5px;
+                border-radius: 4px;
                 min-width: 85px;
                 max-width: 100px;
             }

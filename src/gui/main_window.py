@@ -538,23 +538,18 @@ class MainWindow(QMainWindow):
         logger.info("Main window initialized")
     
     def _apply_theme(self):
-        """Apply modern gradient theme"""
-        # Set main window background with gradient
+        """Apply professional broadcast theme"""
+        # Broadcast-style dark theme with orange accents
         self.setStyleSheet("""
             QMainWindow {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #1a1a2e,
-                    stop:0.5 #16213e,
-                    stop:1 #0f3460
-                );
+                background-color: #1a1a1a;
             }
             QLabel {
-                color: #eaeaea;
+                color: #ffffff;
                 font-family: 'Segoe UI', Arial, sans-serif;
             }
             QFrame {
-                border-radius: 8px;
+                border-radius: 4px;
             }
         """)
     
@@ -599,18 +594,14 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(right_scroll, stretch=1)
     
     def _create_line_panel(self) -> QWidget:
-        """Create panel with 8 line status widgets"""
+        """Create panel with 8 line status widgets - Broadcast style"""
         panel = QFrame()
         panel.setStyleSheet("""
             QFrame {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(255, 255, 255, 0.05),
-                    stop:1 rgba(255, 255, 255, 0.02)
-                );
-                border: 2px solid rgba(255, 255, 255, 0.1);
-                border-radius: 12px;
-                padding: 15px;
+                background-color: #2a2a2a;
+                border: 1px solid #404040;
+                border-radius: 4px;
+                padding: 10px;
             }
         """)
         
@@ -635,18 +626,14 @@ class MainWindow(QMainWindow):
         return panel
     
     def _create_control_panel(self) -> QWidget:
-        """Create dialer and audio control panel"""
+        """Create dialer and audio control panel - Broadcast style"""
         panel = QFrame()
         panel.setStyleSheet("""
             QFrame {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(255, 255, 255, 0.05),
-                    stop:1 rgba(255, 255, 255, 0.02)
-                );
-                border: 2px solid rgba(255, 255, 255, 0.1);
-                border-radius: 12px;
-                padding: 15px;
+                background-color: #2a2a2a;
+                border: 1px solid #404040;
+                border-radius: 4px;
+                padding: 10px;
             }
         """)
         
@@ -666,51 +653,36 @@ class MainWindow(QMainWindow):
         self.line_selector.currentIndexChanged.connect(self._on_line_selector_changed)
         self.line_selector.setStyleSheet("""
             QComboBox {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #4a5568,
-                    stop:1 #2d3748
-                );
-                border: 2px solid rgba(0, 212, 255, 0.3);
-                border-radius: 10px;
-                padding: 15px;
-                padding-right: 50px;
-                color: white;
+                background-color: #1a1a1a;
+                border: 2px solid #404040;
+                border-radius: 4px;
+                padding: 12px 15px;
+                color: #ff6b35;
                 font-weight: bold;
                 font-size: 11pt;
             }
             QComboBox:hover {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #5a6578,
-                    stop:1 #3d4758
-                );
-                border: 2px solid rgba(0, 212, 255, 0.5);
+                border-color: #ff6b35;
+                background-color: #2a2a2a;
             }
             QComboBox::drop-down {
                 border: none;
                 width: 30px;
             }
-            QComboBox::down-arrow {
-                image: none;
-                width: 0px;
-                height: 0px;
-            }
             QComboBox QAbstractItemView {
-                background-color: #2d3748;
-                color: white;
-                selection-background-color: #00d4ff;
-                selection-color: #1a1a2e;
-                border: 2px solid rgba(0, 212, 255, 0.3);
-                border-radius: 6px;
+                background-color: #2a2a2a;
+                color: #ffffff;
+                selection-background-color: #ff6b35;
+                selection-color: #1a1a1a;
+                border: 2px solid #404040;
+                border-radius: 4px;
                 padding: 5px;
-                font-size: 12px;
-                min-width: 400px;
+                font-size: 11pt;
             }
         """)
         top_layout.addWidget(self.line_selector, stretch=1)
         
-        # Settings button (gear icon only)
+        # Settings button (gear icon only) - Broadcast style
         self.settings_btn = QPushButton("⚙")
         self.settings_btn.setFont(QFont("Segoe UI", 18, QFont.Bold))
         self.settings_btn.setMinimumSize(50, 50)
@@ -718,30 +690,18 @@ class MainWindow(QMainWindow):
         self.settings_btn.clicked.connect(self._show_settings)
         self.settings_btn.setStyleSheet("""
             QPushButton {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #4a5568,
-                    stop:1 #2d3748
-                );
-                border: 2px solid rgba(0, 212, 255, 0.3);
-                border-radius: 10px;
-                color: white;
+                background-color: #1a1a1a;
+                border: 2px solid #404040;
+                border-radius: 4px;
+                color: #ff6b35;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #5a6578,
-                    stop:1 #3d4758
-                );
-                border: 2px solid rgba(0, 212, 255, 0.5);
+                background-color: #2a2a2a;
+                border-color: #ff6b35;
             }
             QPushButton:pressed {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #3d4758,
-                    stop:1 #2d3748
-                );
+                background-color: #3a3a3a;
             }
         """)
         top_layout.addWidget(self.settings_btn)
