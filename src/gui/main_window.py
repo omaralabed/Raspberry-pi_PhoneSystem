@@ -6,12 +6,13 @@ Main Window - TouchScreen GUI
 import sys
 import json
 import os
+import subprocess
 from pathlib import Path
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QGridLayout, QPushButton, QLabel, QFrame, QMessageBox, 
                              QComboBox, QDialog, QLineEdit, QSpinBox, QFormLayout, 
                              QDialogButtonBox, QScrollArea, QSizePolicy)
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QEvent, QCoreApplication
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QEvent, QCoreApplication, QProcess
 from PyQt5.QtGui import QFont, QPalette, QColor
 import logging
 
@@ -21,6 +22,145 @@ from .audio_widget import AudioWidget
 from .sip_settings import SIPSettingsDialog
 
 logger = logging.getLogger(__name__)
+
+
+class TouchKeyboard(QWidget):
+    """Modern touch-friendly on-screen keyboard for network configuration"""
+    
+    key_pressed = pyqtSignal(str)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._create_ui()
+    
+    def _create_ui(self):
+        """Create keyboard layout"""
+        layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Background
+        self.setStyleSheet("TouchKeyboard { background-color: #1a1a1a; border-radius: 8px; }")
+        
+        # Number row (for IP addresses)
+        num_layout = QHBoxLayout()
+        num_layout.setSpacing(12)
+        numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
+        for num in numbers:
+            btn = self._create_key(num, 80, 60)
+            num_layout.addWidget(btn)
+        layout.addLayout(num_layout)
+        
+        # Special characters row
+        special_layout = QHBoxLayout()
+        special_layout.setSpacing(12)
+        
+        specials = ['.', '/', ':', '-', '_', '⌫']
+        widths = [80, 80, 80, 80, 80, 200]
+        
+        for i, char in enumerate(specials):
+            if char == '⌫':
+                btn = QPushButton(char)
+                btn.setFixedSize(widths[i], 60)
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #ff6b35;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 22pt;
+                        font-weight: bold;
+                    }
+                    QPushButton:pressed {
+                        background-color: #ff8c5a;
+                    }
+                """)
+                btn.clicked.connect(lambda checked, c='\b': self.key_pressed.emit(c))
+            else:
+                btn = self._create_key(char, widths[i], 60)
+            special_layout.addWidget(btn)
+        
+        layout.addLayout(special_layout)
+        
+        # Action buttons row
+        action_layout = QHBoxLayout()
+        action_layout.setSpacing(12)
+        
+        clear_btn = QPushButton('Clear')
+        clear_btn.setFixedSize(240, 60)
+        clear_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 18pt;
+                font-weight: bold;
+            }
+            QPushButton:pressed {
+                background-color: #7d8a94;
+            }
+        """)
+        clear_btn.clicked.connect(lambda: self.key_pressed.emit('CLEAR'))
+        action_layout.addWidget(clear_btn)
+        
+        cancel_btn = QPushButton('Cancel')
+        cancel_btn.setFixedSize(300, 60)
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 18pt;
+                font-weight: bold;
+            }
+            QPushButton:pressed {
+                background-color: #e55563;
+            }
+        """)
+        cancel_btn.clicked.connect(lambda: self.key_pressed.emit('CANCEL'))
+        action_layout.addWidget(cancel_btn)
+        
+        done_btn = QPushButton('Done')
+        done_btn.setFixedSize(320, 60)
+        done_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 20pt;
+                font-weight: bold;
+            }
+            QPushButton:pressed {
+                background-color: #34ce57;
+            }
+        """)
+        done_btn.clicked.connect(lambda: self.key_pressed.emit('DONE'))
+        action_layout.addWidget(done_btn)
+        
+        layout.addLayout(action_layout)
+    
+    def _create_key(self, char, width, height):
+        """Create a keyboard key button"""
+        btn = QPushButton(char)
+        btn.setFixedSize(width, height)
+        btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3f3f46;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 20pt;
+                font-weight: bold;
+            }
+            QPushButton:pressed {
+                background-color: #52525b;
+            }
+        """)
+        btn.clicked.connect(lambda: self.key_pressed.emit(char))
+        return btn
 
 
 def load_stylesheet():
@@ -1026,12 +1166,123 @@ class MainWindow(QMainWindow):
         msg_box.exec_()
     
     def _show_settings(self):
+        """Show settings menu with options"""
+        # Create settings menu dialog
+        menu_dialog = QDialog(self)
+        menu_dialog.setWindowTitle("Settings")
+        menu_dialog.setMinimumSize(600, 500)
+        menu_dialog.setStyleSheet("""
+            QDialog {
+                background-color: #1a1a1a;
+                border: 3px solid #ff6b35;
+                border-radius: 12px;
+            }
+        """)
+        
+        layout = QVBoxLayout(menu_dialog)
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+        
+        # Title
+        title = QLabel("⚙ Settings")
+        title.setStyleSheet("color: #ff6b35; font-size: 32pt; font-weight: bold;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+        
+        layout.addSpacing(20)
+        
+        # SIP Configuration button
+        sip_btn = QPushButton("📞 SIP Configuration")
+        sip_btn.setMinimumHeight(100)
+        sip_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2a2a2a;
+                color: white;
+                border: 2px solid #404040;
+                border-radius: 8px;
+                font-size: 24pt;
+                font-weight: bold;
+                padding: 20px;
+            }
+            QPushButton:hover {
+                background-color: #3a3a3a;
+                border-color: #ff6b35;
+            }
+            QPushButton:pressed {
+                background-color: #1a1a1a;
+            }
+        """)
+        sip_btn.clicked.connect(lambda: self._show_sip_settings(menu_dialog))
+        layout.addWidget(sip_btn)
+        
+        # Network Configuration button
+        network_btn = QPushButton("🌐 Network Configuration")
+        network_btn.setMinimumHeight(100)
+        network_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2a2a2a;
+                color: white;
+                border: 2px solid #404040;
+                border-radius: 8px;
+                font-size: 24pt;
+                font-weight: bold;
+                padding: 20px;
+            }
+            QPushButton:hover {
+                background-color: #3a3a3a;
+                border-color: #00d4ff;
+            }
+            QPushButton:pressed {
+                background-color: #1a1a1a;
+            }
+        """)
+        network_btn.clicked.connect(lambda: self._show_network_settings(menu_dialog))
+        layout.addWidget(network_btn)
+        
+        layout.addStretch()
+        
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.setMinimumHeight(80)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 22pt;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #7d8a94;
+            }
+            QPushButton:pressed {
+                background-color: #5a6268;
+            }
+        """)
+        close_btn.clicked.connect(menu_dialog.close)
+        layout.addWidget(close_btn)
+        
+        # Position dialog on right side of screen
+        from PyQt5.QtWidgets import QApplication
+        menu_dialog.adjustSize()
+        screen_geometry = QApplication.primaryScreen().geometry()
+        # Position on right side with some margin from edge
+        x_position = screen_geometry.width() - menu_dialog.width() - 50
+        y_position = (screen_geometry.height() - menu_dialog.height()) // 2
+        menu_dialog.move(x_position, y_position)
+        
+        menu_dialog.exec_()
+    
+    def _show_sip_settings(self, parent_dialog):
         """Show SIP settings dialog with authorization warning"""
+        parent_dialog.hide()  # Hide menu temporarily
+        
         # Create custom warning dialog
         warning = QDialog(self)
         warning.setWindowTitle("Authorization Required")
-        warning.setMinimumSize(350, 200)  # Use minimum size instead of fixed
-        warning.setMaximumSize(500, 300)  # Allow flexibility for different screens
+        warning.setMinimumSize(350, 200)
+        warning.setMaximumSize(500, 300)
         warning.setStyleSheet("""
             QDialog {
                 background-color: #1e1e2e;
@@ -1053,7 +1304,7 @@ class MainWindow(QMainWindow):
         
         layout.addStretch()
         
-        # Buttons - more compact
+        # Buttons
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(15)
         
@@ -1097,11 +1348,13 @@ class MainWindow(QMainWindow):
         
         # Center dialog on screen
         from PyQt5.QtWidgets import QApplication
-        warning.adjustSize()  # Calculate size first
+        warning.adjustSize()
         screen_center = QApplication.primaryScreen().geometry().center()
-        warning.move(screen_center.x() - warning.width() // 2, screen_center.y() - warning.height() // 2)
+        warning.move(screen_center.x() - warning.width() // 2, 
+                    screen_center.y() - warning.height() // 2)
         
         if warning.exec_() != QDialog.Accepted:
+            parent_dialog.show()  # Show menu again
             return
         
         logger.info("Opening SIP settings dialog")
@@ -1110,6 +1363,669 @@ class MainWindow(QMainWindow):
         
         if result == QDialog.Accepted:
             logger.info("SIP settings updated - restart required")
+        
+        parent_dialog.show()  # Show menu again
+    
+    def _show_network_settings(self, parent_dialog):
+        """Show network configuration dialog"""
+        parent_dialog.hide()  # Hide menu temporarily
+        
+        # Create network settings dialog - FIXED SIZE to fit screen
+        network_dialog = QDialog(self)
+        network_dialog.setWindowTitle("Network Configuration")
+        network_dialog.setFixedSize(900, 750)  # Increased height to prevent overlap
+        network_dialog.setStyleSheet("""
+            QDialog {
+                background-color: #1a1a1a;
+                border: 3px solid #00d4ff;
+                border-radius: 12px;
+            }
+        """)
+        
+        # Simple layout - no scroll
+        layout = QVBoxLayout(network_dialog)
+        layout.setSpacing(3)
+        layout.setContentsMargins(10, 8, 10, 8)
+        
+        # Title - very compact
+        title = QLabel("🌐 Network Configuration")
+        title.setStyleSheet("color: #00d4ff; font-size: 18pt; font-weight: bold;")
+        title.setAlignment(Qt.AlignCenter)
+        title.setFixedHeight(30)
+        layout.addWidget(title)
+        
+        # Get current IP info and detect if static or DHCP
+        import subprocess
+        try:
+            result = subprocess.run(['hostname', '-I'], capture_output=True, text=True)
+            current_ip = result.stdout.strip().split()[0] if result.stdout else "Unknown"
+        except:
+            current_ip = "Unknown"
+        
+        # Detect current network mode (check if route is static)
+        is_static = False
+        current_gateway = ""
+        current_dns = ""
+        try:
+            # Check if route is static
+            route_result = subprocess.run(['ip', 'route', 'show', 'default'], 
+                                         capture_output=True, text=True, timeout=2)
+            if 'proto static' in route_result.stdout:
+                is_static = True
+                # Extract gateway
+                parts = route_result.stdout.split()
+                if 'via' in parts:
+                    idx = parts.index('via')
+                    if idx + 1 < len(parts):
+                        current_gateway = parts[idx + 1]
+            
+            # Get DNS server
+            dns_result = subprocess.run(['resolvectl', 'status', 'eth0'], 
+                                       capture_output=True, text=True, timeout=2)
+            for line in dns_result.stdout.split('\n'):
+                if 'DNS Servers:' in line:
+                    current_dns = line.split(':')[1].strip()
+                    break
+        except:
+            pass
+        
+        # Current IP display - compact
+        mode_text = "Static IP" if is_static else "DHCP"
+        ip_label = QLabel(f"Current: {current_ip} ({mode_text})")
+        ip_label.setStyleSheet("color: white; font-size: 14pt;")
+        ip_label.setAlignment(Qt.AlignCenter)
+        ip_label.setFixedHeight(25)
+        layout.addWidget(ip_label)
+        
+        # Network mode selector - compact
+        mode_label = QLabel("Mode:")
+        mode_label.setStyleSheet("color: #00d4ff; font-size: 12pt; font-weight: bold;")
+        mode_label.setFixedHeight(20)
+        layout.addWidget(mode_label)
+        
+        mode_combo = QComboBox()
+        mode_combo.setObjectName("network_mode_combo")
+        mode_combo.addItem("🔄 DHCP (Automatic)", "dhcp")
+        mode_combo.addItem("✏️ Manual (Static IP)", "manual")
+        mode_combo.setFixedHeight(50)  # Smaller
+        mode_combo.view().setMinimumWidth(700)
+        mode_combo.view().setMinimumHeight(150)
+        mode_combo.view().setSpacing(5)
+        mode_combo.view().setUniformItemSizes(True)
+        
+        # Set current mode in dropdown
+        if is_static:
+            mode_combo.setCurrentIndex(1)  # Select "Manual (Static IP)"
+        else:
+            mode_combo.setCurrentIndex(0)  # Select "DHCP"
+        
+        layout.addWidget(mode_combo)
+        
+        # Manual configuration section
+        manual_config = QWidget()
+        manual_layout = QVBoxLayout(manual_config)
+        manual_layout.setSpacing(8)
+        manual_layout.setContentsMargins(0, 10, 0, 0)
+        
+        # "Static IP" header
+        static_header = QLabel("Static IP")
+        static_header.setStyleSheet("color: white; font-size: 18pt; font-weight: bold;")
+        manual_layout.addWidget(static_header)
+        
+        # Each field as a horizontal layout with blue left border
+        def create_field_row(label_text, input_widget):
+            row = QWidget()
+            row.setStyleSheet("""
+                QWidget {
+                    background-color: #1e1e1e;
+                    border-left: 4px solid #00d4ff;
+                    border-radius: 4px;
+                }
+            """)
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(15, 10, 15, 10)
+            row_layout.setSpacing(15)
+            
+            label = QLabel(label_text)
+            label.setStyleSheet("color: white; font-size: 14pt; border: none;")
+            label.setFixedWidth(140)
+            row_layout.addWidget(label)
+            
+            input_widget.setStyleSheet("""
+                QLineEdit {
+                    background-color: #2d2d2d;
+                    color: white;
+                    border: 1px solid #555;
+                    border-radius: 4px;
+                    padding: 8px;
+                    font-size: 14pt;
+                }
+                QLineEdit:focus {
+                    border: 1px solid #00d4ff;
+                }
+            """)
+            input_widget.setFixedHeight(45)
+            row_layout.addWidget(input_widget)
+            
+            return row
+        
+        # IP Address
+        ip_input = QLineEdit()
+        ip_input.setPlaceholderText("192.xxx.xxx.xxxx")
+        if is_static and current_ip != "Unknown":
+            ip_input.setText(current_ip)
+        else:
+            ip_input.setText("192.168.1.221")
+        manual_layout.addWidget(create_field_row("IP Adress:", ip_input))
+        
+        # Subnet Mask
+        subnet_input = QLineEdit()
+        subnet_input.setPlaceholderText("255.255.255.0")
+        subnet_input.setText("255.255.255.0")
+        manual_layout.addWidget(create_field_row("Subnet Mask:", subnet_input))
+        
+        # Gateway
+        gateway_input = QLineEdit()
+        gateway_input.setPlaceholderText("192.168.xxx.xxx")
+        if is_static and current_gateway:
+            gateway_input.setText(current_gateway)
+        else:
+            gateway_input.setText("192.168.1.1")
+        manual_layout.addWidget(create_field_row("Gateway:", gateway_input))
+        
+        # DNS Server
+        dns_input = QLineEdit()
+        dns_input.setPlaceholderText("8.8.8.8")
+        if is_static and current_dns:
+            dns_input.setText(current_dns)
+        else:
+            dns_input.setText("8.8.8.8")
+        manual_layout.addWidget(create_field_row("DNS:", dns_input))
+        
+        manual_config.setVisible(False)  # Hidden by default
+        layout.addWidget(manual_config)
+        
+        # Buttons at bottom - always visible
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(15)
+        btn_layout.setContentsMargins(0, 8, 0, 0)
+        
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setFixedHeight(55)
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 18pt;
+                font-weight: bold;
+            }
+            QPushButton:pressed {
+                background-color: #7d8a94;
+            }
+        """)
+        cancel_btn.clicked.connect(network_dialog.reject)
+        btn_layout.addWidget(cancel_btn)
+        
+        save_btn = QPushButton("Save & Restart")
+        save_btn.setFixedHeight(55)
+        save_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 18pt;
+                font-weight: bold;
+            }
+            QPushButton:pressed {
+                background-color: #34ce57;
+            }
+        """)
+        save_btn.clicked.connect(network_dialog.accept)
+        btn_layout.addWidget(save_btn)
+        
+        layout.addLayout(btn_layout)
+        
+        # Show manual config if currently using static IP
+        if is_static:
+            manual_config.setVisible(True)
+        
+        # Create keyboard dialog (separate window, positioned to the left of config dialog)
+        keyboard_dialog = QDialog(self)
+        keyboard_dialog.setWindowTitle("Keyboard")
+        keyboard_dialog.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        keyboard_dialog.setModal(False)  # Non-blocking
+        keyboard_dialog.setFixedSize(950, 280)
+        keyboard_dialog.setStyleSheet("""
+            QDialog {
+                background-color: #1a1a1a;
+                border: 3px solid #00d4ff;
+                border-radius: 12px;
+            }
+        """)
+        
+        keyboard_layout = QVBoxLayout(keyboard_dialog)
+        keyboard_layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Add keyboard
+        keyboard = TouchKeyboard()
+        keyboard_layout.addWidget(keyboard)
+        
+        # Track current active input
+        self.active_input = None
+        
+        # Handle keyboard input
+        def on_key_pressed(key):
+            if not self.active_input:
+                return
+                
+            if key == 'DONE':
+                keyboard_dialog.hide()
+                self.active_input = None
+            elif key == 'CANCEL':
+                keyboard_dialog.hide()
+                self.active_input = None
+            elif key == 'CLEAR':
+                self.active_input.clear()
+            elif key == '\b':  # Backspace
+                text = self.active_input.text()
+                self.active_input.setText(text[:-1])
+            else:
+                self.active_input.insert(key)
+        
+        keyboard.key_pressed.connect(on_key_pressed)
+        
+        # Show keyboard when input fields are clicked
+        def show_keyboard_for_input(input_widget):
+            self.active_input = input_widget
+            if not keyboard_dialog.isVisible():
+                keyboard_dialog.show()
+        
+        # Connect input fields to show keyboard
+        ip_input.mousePressEvent = lambda e: show_keyboard_for_input(ip_input)
+        subnet_input.mousePressEvent = lambda e: show_keyboard_for_input(subnet_input)
+        gateway_input.mousePressEvent = lambda e: show_keyboard_for_input(gateway_input)
+        dns_input.mousePressEvent = lambda e: show_keyboard_for_input(dns_input)
+        
+        # Position dialogs on screen
+        from PyQt5.QtWidgets import QApplication
+        screen_geometry = QApplication.primaryScreen().geometry()
+        
+        # Position config dialog on right side
+        x_position_config = screen_geometry.width() - network_dialog.width() - 50
+        y_position_config = (screen_geometry.height() - network_dialog.height()) // 2
+        network_dialog.move(x_position_config, y_position_config)
+        
+        # Position keyboard to the left of config dialog
+        x_position_keyboard = x_position_config - keyboard_dialog.width() - 20
+        y_position_keyboard = y_position_config + (network_dialog.height() - keyboard_dialog.height()) // 2
+        keyboard_dialog.move(x_position_keyboard, y_position_keyboard)
+        
+        # Show keyboard dialog when manual mode is shown
+        def on_mode_changed_with_keyboard(index):
+            is_manual = mode_combo.currentData() == "manual"
+            manual_config.setVisible(is_manual)
+            if is_manual:
+                keyboard_dialog.show()
+            else:
+                keyboard_dialog.hide()
+        
+        mode_combo.currentIndexChanged.connect(on_mode_changed_with_keyboard)
+        
+        # Show keyboard if starting with static IP
+        if is_static:
+            keyboard_dialog.show()
+        
+        # Handle dialog accepted (Save & Restart button)
+        def on_dialog_accepted():
+            keyboard_dialog.close()
+            # Close parent settings dialog first to prevent blocking
+            if parent_dialog:
+                parent_dialog.close()
+            
+            # Get selected mode and process configuration
+            selected_mode = mode_combo.currentData()
+            
+            if selected_mode == "dhcp":
+                # Configure DHCP
+                self._configure_dhcp()
+            elif selected_mode == "manual":
+                # Configure static IP
+                ip = ip_input.text().strip()
+                subnet = subnet_input.text().strip()
+                gateway = gateway_input.text().strip()
+                dns = dns_input.text().strip()
+                
+                self._configure_static_ip(ip, subnet, gateway, dns)
+            
+            network_dialog.close()
+        
+        # Handle dialog rejected (Cancel button)
+        def on_dialog_rejected():
+            keyboard_dialog.close()
+            network_dialog.close()
+        
+        # Connect signals
+        network_dialog.accepted.connect(on_dialog_accepted)
+        network_dialog.rejected.connect(on_dialog_rejected)
+        
+        # Show dialogs (non-blocking)
+        network_dialog.show()
+    
+    def _detect_network_type(self):
+        """Detect if system uses netplan or dhcpcd"""
+        try:
+            # Check for netplan
+            import os
+            if os.path.exists('/etc/netplan'):
+                return 'netplan'
+            else:
+                return 'dhcpcd'
+        except:
+            return 'dhcpcd'  # Default fallback
+    
+    def _configure_dhcp(self):
+        """Configure network for DHCP"""
+        try:
+            # Ask for confirmation FIRST
+            confirm_dialog = QMessageBox(self)
+            confirm_dialog.setWindowTitle("Confirm Network Change")
+            confirm_dialog.setText("Switch to DHCP (Automatic)?")
+            confirm_dialog.setInformativeText("System will reboot to apply changes.\n\nContinue?")
+            confirm_dialog.setIcon(QMessageBox.Question)
+            confirm_dialog.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+            confirm_dialog.setDefaultButton(QMessageBox.Ok)
+            
+            # Style the dialog
+            confirm_dialog.setStyleSheet("""
+                QMessageBox {
+                    background-color: #1a1a1a;
+                    min-width: 600px;
+                    min-height: 400px;
+                }
+                QMessageBox QLabel {
+                    color: white;
+                    font-size: 24pt;
+                    padding: 20px;
+                    min-width: 500px;
+                }
+                QPushButton {
+                    background-color: #ff6b35;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 22pt;
+                    font-weight: bold;
+                    padding: 15px 40px;
+                    min-width: 180px;
+                    min-height: 80px;
+                }
+                QPushButton:hover {
+                    background-color: #ff8c5a;
+                }
+                QPushButton:default {
+                    background-color: #00d4ff;
+                }
+                QPushButton:default:hover {
+                    background-color: #33ddff;
+                }
+            """)
+            
+            # If user clicks Cancel, abort
+            if confirm_dialog.exec_() != QMessageBox.Ok:
+                logger.info("User cancelled DHCP configuration")
+                return
+            
+            # User confirmed - proceed with configuration
+            network_type = self._detect_network_type()
+            
+            if network_type == 'netplan':
+                # Netplan YAML configuration for DHCP
+                config_content = """# ProComm Network Configuration
+# Generated by ProComm Phone System
+network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      dhcp4: true
+      dhcp6: false
+"""
+            else:
+                # dhcpcd configuration for DHCP
+                config_content = """# DHCP Configuration
+# Generated by ProComm Phone System
+
+# Use DHCP for eth0
+interface eth0
+"""
+            
+            # Write to temp location
+            with open('/tmp/procomm_network.conf', 'w') as f:
+                f.write(config_content)
+            
+            # Write network type
+            with open('/tmp/procomm_network_type.txt', 'w') as f:
+                f.write(network_type)
+            
+            logger.info(f"DHCP configuration saved ({network_type})")
+            
+            # Check if helper script exists
+            script_path = os.path.expanduser("~/ProComm/update_network.sh")
+            if not os.path.exists(script_path):
+                logger.error(f"Helper script not found: {script_path}")
+                QMessageBox.critical(self, "Error", 
+                    f"Configuration helper script not found.\n\nPlease ensure {script_path} exists.")
+                return
+            
+            # Apply the configuration using helper script
+            result = subprocess.run(['sudo', '-n', script_path], 
+                                   capture_output=True, 
+                                   text=True, 
+                                   timeout=5)
+            
+            if result.returncode == 0:
+                logger.info("DHCP configuration applied successfully - rebooting...")
+                subprocess.Popen(['sudo', 'reboot'])
+            else:
+                error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+                if "password" in error_msg.lower() or "sudo" in error_msg.lower():
+                    logger.error("Sudo not configured for passwordless access")
+                    QMessageBox.warning(self, "Configuration Saved", 
+                        "Configuration saved to /tmp/procomm_network.conf\n\nSudo access not configured. Please run:\nsudo ~/ProComm/update_network.sh\n\nThen restart the system.")
+                else:
+                    logger.error(f"Failed to apply configuration: {error_msg}")
+                    QMessageBox.warning(self, "Partial Success", 
+                        f"Configuration saved but failed to apply:\n{error_msg}\n\nPlease run manually:\nsudo ~/ProComm/update_network.sh")
+                
+        except subprocess.TimeoutExpired:
+            logger.error("Configuration script timed out")
+            QMessageBox.critical(self, "Error", "Configuration script timed out. Please check system logs.")
+        except FileNotFoundError as e:
+            logger.error(f"Command not found: {e}")
+            QMessageBox.critical(self, "Error", f"Required command not found: {e}")
+        except Exception as e:
+            logger.error(f"Failed to configure DHCP: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to save configuration:\n{e}")
+    
+    def _configure_static_ip(self, ip, subnet, gateway, dns):
+        """Configure network for static IP"""
+        try:
+            # Basic validation
+            if not ip or not gateway or not dns:
+                QMessageBox.warning(self, "Validation Error", 
+                    "Please fill in all required fields:\n- IP Address\n- Gateway\n- DNS Server")
+                return
+            
+            # Simple IP format validation
+            def is_valid_ip(ip_str):
+                parts = ip_str.split('.')
+                if len(parts) != 4:
+                    return False
+                try:
+                    return all(0 <= int(part) <= 255 for part in parts)
+                except ValueError:
+                    return False
+            
+            if not is_valid_ip(ip):
+                QMessageBox.warning(self, "Validation Error", f"Invalid IP address: {ip}")
+                return
+            if not is_valid_ip(gateway):
+                QMessageBox.warning(self, "Validation Error", f"Invalid gateway: {gateway}")
+                return
+            if not is_valid_ip(dns):
+                QMessageBox.warning(self, "Validation Error", f"Invalid DNS server: {dns}")
+                return
+            
+            # Convert subnet mask to CIDR notation (e.g., 255.255.255.0 -> /24)
+            subnet_cidr_map = {
+                '255.255.255.0': '24',
+                '255.255.0.0': '16',
+                '255.0.0.0': '8',
+                '255.255.255.128': '25',
+                '255.255.255.192': '26',
+                '255.255.255.224': '27',
+                '255.255.255.240': '28',
+                '255.255.255.248': '29',
+                '255.255.255.252': '30'
+            }
+            cidr = subnet_cidr_map.get(subnet, '24')  # Default to /24 if not found
+            
+            # Ask for confirmation FIRST
+            confirm_dialog = QMessageBox(self)
+            confirm_dialog.setWindowTitle("Confirm Network Change")
+            confirm_dialog.setText("Apply Static IP Configuration?")
+            confirm_dialog.setInformativeText(f"IP: {ip}/{cidr}\nGateway: {gateway}\nDNS: {dns}\n\nSystem will reboot to apply changes.\n\nContinue?")
+            confirm_dialog.setIcon(QMessageBox.Question)
+            confirm_dialog.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+            confirm_dialog.setDefaultButton(QMessageBox.Ok)
+            
+            # Style the dialog
+            confirm_dialog.setStyleSheet("""
+                QMessageBox {
+                    background-color: #1a1a1a;
+                    min-width: 600px;
+                    min-height: 400px;
+                }
+                QMessageBox QLabel {
+                    color: white;
+                    font-size: 24pt;
+                    padding: 20px;
+                    min-width: 500px;
+                }
+                QPushButton {
+                    background-color: #ff6b35;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 22pt;
+                    font-weight: bold;
+                    padding: 15px 40px;
+                    min-width: 180px;
+                    min-height: 80px;
+                }
+                QPushButton:hover {
+                    background-color: #ff8c5a;
+                }
+                QPushButton:default {
+                    background-color: #00d4ff;
+                }
+                QPushButton:default:hover {
+                    background-color: #33ddff;
+                }
+            """)
+            
+            # If user clicks Cancel, abort
+            if confirm_dialog.exec_() != QMessageBox.Ok:
+                logger.info("User cancelled static IP configuration")
+                return
+            
+            # User confirmed - proceed with configuration
+            # Detect network type
+            network_type = self._detect_network_type()
+            
+            if network_type == 'netplan':
+                # Netplan YAML configuration for static IP
+                config_content = f"""# ProComm Network Configuration
+# Generated by ProComm Phone System
+network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - {ip}/{cidr}
+      routes:
+        - to: default
+          via: {gateway}
+      nameservers:
+        addresses:
+          - {dns}
+"""
+            else:
+                # dhcpcd configuration for static IP
+                config_content = f"""# Static IP Configuration
+# Generated by ProComm Phone System
+
+interface eth0
+static ip_address={ip}/{cidr}
+static routers={gateway}
+static domain_name_servers={dns}
+"""
+            
+            # Write to temp location
+            with open('/tmp/procomm_network.conf', 'w') as f:
+                f.write(config_content)
+            
+            # Write network type
+            with open('/tmp/procomm_network_type.txt', 'w') as f:
+                f.write(network_type)
+            
+            logger.info(f"Static IP configuration saved ({network_type}): {ip}/{cidr}")
+            
+            # Check if helper script exists
+            script_path = os.path.expanduser("~/ProComm/update_network.sh")
+            if not os.path.exists(script_path):
+                logger.error(f"Helper script not found: {script_path}")
+                QMessageBox.critical(self, "Error", 
+                    f"Configuration helper script not found.\n\nPlease ensure {script_path} exists.")
+                return
+            
+            # Apply the configuration using helper script (non-blocking)
+            result = subprocess.run(['sudo', '-n', script_path], 
+                                   capture_output=True, 
+                                   text=True, 
+                                   timeout=5)
+            
+            if result.returncode == 0:
+                logger.info(f"Static IP configuration applied: {ip} - rebooting...")
+                subprocess.Popen(['sudo', 'reboot'])
+            else:
+                error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+                if "password" in error_msg.lower() or "sudo" in error_msg.lower():
+                    logger.error("Sudo not configured for passwordless access")
+                    QMessageBox.warning(self, "Configuration Saved", 
+                        f"Configuration saved to /tmp/procomm_network.conf\n\nIP: {ip}/{cidr}\nGateway: {gateway}\nDNS: {dns}\n\nSudo access not configured. Please run:\nsudo ~/ProComm/update_network.sh\n\nThen restart the system.")
+                else:
+                    logger.error(f"Failed to apply configuration: {error_msg}")
+                    QMessageBox.warning(self, "Partial Success", 
+                        f"Configuration saved but failed to apply:\n{error_msg}\n\nPlease run manually:\nsudo ~/ProComm/update_network.sh")
+                
+        except subprocess.TimeoutExpired:
+            logger.error("Configuration script timed out")
+            QMessageBox.critical(self, "Error", "Configuration script timed out. Please check system logs.")
+        except FileNotFoundError as e:
+            logger.error(f"Command not found: {e}")
+            QMessageBox.critical(self, "Error", f"Required command not found: {e}")
+        except Exception as e:
+            logger.error(f"Failed to configure static IP: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to save configuration:\n{e}")
+    
+    
     
     def eventFilter(self, obj, event):
         """Application-wide event filter to detect mouse movement"""
