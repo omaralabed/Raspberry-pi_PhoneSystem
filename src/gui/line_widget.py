@@ -4,12 +4,13 @@ Line Widget - Individual Phone Line Status Display
 """
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-                             QLabel, QFrame, QComboBox, QMessageBox)
+                             QLabel, QFrame, QComboBox, QMessageBox, QDialog)
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from PyQt5.QtGui import QFont
 import logging
 
 from ..phone_line import PhoneLine, LineState, AudioOutput
+from .dialer_widget import DialerWidget
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,8 @@ class LineWidget(QWidget):
     
     # Signals
     hangup_clicked = pyqtSignal(int)  # line_id
+    dial_clicked = pyqtSignal(int)  # line_id - emitted when DIAL button clicked
+    make_call = pyqtSignal(int, str)  # line_id, phone_number - emitted to make a call
     audio_channel_changed = pyqtSignal(int, int)  # line_id, channel
     
     def __init__(self, line: PhoneLine, parent=None):
@@ -181,17 +184,16 @@ class LineWidget(QWidget):
         button_row.addWidget(self.channel_picker)
         
         # Hangup button next to picker with safe spacing
-        self.hangup_btn = QPushButton("📞 HANG UP")
-        self.hangup_btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
-        # Remove fixed sizes - let it adapt
-        self.hangup_btn.setEnabled(False)  # Start disabled
-        self.hangup_btn.clicked.connect(self._on_hangup)
-        self.hangup_btn.setStyleSheet("""
+        # Action button - DIAL when idle, HANGUP when active
+        self.action_btn = QPushButton("📞 DIAL")
+        self.action_btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        self.action_btn.clicked.connect(self._on_action_clicked)
+        self.action_btn.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #ff9f1a,
-                    stop:1 #ff6b35
+                    stop:0 #2ed573,
+                    stop:1 #26de81
                 );
                 color: white;
                 border: 3px solid white;
@@ -203,24 +205,112 @@ class LineWidget(QWidget):
             QPushButton:hover {
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #ffb84d,
-                    stop:1 #ff8555
+                    stop:0 #3ee583,
+                    stop:1 #36ee91
                 );
                 border: 3px solid #00d4ff;
             }
             QPushButton:pressed {
-                background: #cc6600;
+                background: #1ea755;
                 padding: 9px 14px 7px 16px;
             }
-            QPushButton:disabled {
-                background: #4a4a4a;
-                color: #888888;
-                border: 2px solid #666666;
-            }
         """)
-        button_row.addWidget(self.hangup_btn)
+        button_row.addWidget(self.action_btn)
         
         frame_layout.addLayout(button_row)
+    
+    def _on_action_clicked(self):
+        """Handle action button click - either dial or hangup based on line state"""
+        is_active = self.line.is_active()
+        if is_active:
+            # Line is active - hangup
+            self._on_hangup()
+        else:
+            # Line is idle - show popup dialer
+            logger.info(f"[LineWidget] Dial button clicked for line {self.line.line_id}")
+            self._show_popup_dialer()
+    
+    def _show_popup_dialer(self):
+        """Show a large popup dialer for this line"""
+        # Create dialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Dial - Line {self.line.line_id}")
+        dialog.setModal(True)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #1a1a1a;
+            }
+        """)
+        
+        # Create layout
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(20)
+        
+        # Line label
+        line_label = QLabel(f"Line {self.line.line_id}")
+        line_label.setStyleSheet("""
+            QLabel {
+                color: #ff6b35;
+                font-size: 28px;
+                font-weight: bold;
+                padding: 10px;
+            }
+        """)
+        line_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(line_label)
+        
+        # Create dialer widget
+        dialer = DialerWidget(dialog)
+        layout.addWidget(dialer)
+        
+        # Connect dialer call signal
+        def on_call(phone_number):
+            logger.info(f"[LineWidget] Calling {phone_number} on line {self.line.line_id}")
+            dialog.accept()
+            # Emit signal to main window to make the call
+            self.make_call.emit(self.line.line_id, phone_number)
+        
+        dialer.call_requested.connect(on_call)
+        
+        # Add Cancel button at the bottom
+        cancel_btn = QPushButton("✖ Cancel")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                            stop:0 #555555, stop:1 #444444);
+                color: white;
+                border: 2px solid #666666;
+                border-radius: 8px;
+                padding: 15px;
+                font-size: 18px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                            stop:0 #666666, stop:1 #555555);
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                            stop:0 #333333, stop:1 #222222);
+            }
+        """)
+        cancel_btn.clicked.connect(dialog.reject)
+        layout.addWidget(cancel_btn)
+        
+        # Set dialog size - large and comfortable
+        dialog.resize(800, 900)
+        
+        # Center on parent widget
+        if self.window():
+            parent_geo = self.window().geometry()
+            dialog_geo = dialog.geometry()
+            x = parent_geo.x() + (parent_geo.width() - dialog_geo.width()) // 2
+            y = parent_geo.y() + (parent_geo.height() - dialog_geo.height()) // 2
+            dialog.move(x, y)
+        
+        # Show dialog
+        dialog.exec_()
     
     def _on_hangup(self):
         """Handle hangup button click"""
@@ -319,9 +409,54 @@ class LineWidget(QWidget):
         # Status text (only if state changed)
         if state_changed:
             self.status_label.setText(self.line.get_status_string())
-            # Enable/disable hangup button based on line state
+            # Update action button based on line state
             is_active = self.line.is_active()
-            self.hangup_btn.setEnabled(is_active)
+            if is_active:
+                # Show HANGUP button (red/orange)
+                self.action_btn.setText("📞 HANG UP")
+                self.action_btn.setStyleSheet("""
+                    QPushButton {
+                        background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                                    stop:0 #ff6b6b, stop:1 #ee5a52);
+                        color: white;
+                        border: 2px solid #c92a2a;
+                        border-radius: 8px;
+                        padding: 12px;
+                        font-size: 16px;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                                    stop:0 #fa5252, stop:1 #e03131);
+                    }
+                    QPushButton:pressed {
+                        background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                                    stop:0 #c92a2a, stop:1 #a61e1e);
+                    }
+                """)
+            else:
+                # Show DIAL button (green)
+                self.action_btn.setText("📞 DIAL")
+                self.action_btn.setStyleSheet("""
+                    QPushButton {
+                        background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                                    stop:0 #2ed573, stop:1 #26de81);
+                        color: white;
+                        border: 2px solid #20bf6b;
+                        border-radius: 8px;
+                        padding: 12px;
+                        font-size: 16px;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                                    stop:0 #26de81, stop:1 #20bf6b);
+                    }
+                    QPushButton:pressed {
+                        background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                                    stop:0 #20bf6b, stop:1 #0abf53);
+                    }
+                """)
             logger.debug(f"Line {self.line.line_id} update: state={current_state}, is_active={is_active}")
         
         # Audio routing (only if channel changed)

@@ -615,6 +615,7 @@ class MainWindow(QMainWindow):
             line = self.sip_engine.get_line(i + 1)
             widget = LineWidget(line, self)
             widget.hangup_clicked.connect(self._on_hangup_clicked)
+            widget.make_call.connect(self._on_line_make_call)
             widget.audio_channel_changed.connect(self._on_audio_channel_changed)
             
             row = i // 2
@@ -708,11 +709,6 @@ class MainWindow(QMainWindow):
         
         layout.addLayout(top_layout)
         
-        # Dialer widget
-        self.dialer = DialerWidget(self)
-        self.dialer.call_requested.connect(self._on_call_requested)
-        layout.addWidget(self.dialer, stretch=1)
-        
         # Audio routing widget
         self.audio_widget = AudioWidget(self.audio_router, self)
         layout.addWidget(self.audio_widget)
@@ -776,34 +772,15 @@ class MainWindow(QMainWindow):
         # Unblock signals
         self.line_selector.blockSignals(False)
     
-    def _on_call_requested(self, phone_number: str):
-        """Handle call request from dialer"""
-        if not self.selected_line_id:
-            logger.warning("Call requested but no line selected")
-            self._show_styled_message("No Line Selected", "Please select a line from the dropdown first")
-            return
-        
-        line = self.sip_engine.get_line(self.selected_line_id)
-        if not line.is_available():
-            logger.warning(f"Line {self.selected_line_id} not available")
-            self._show_styled_message("Line Unavailable", f"Line {self.selected_line_id} is not available")
-            return
-        
-        # Make call
-        logger.info(f"Making call on line {self.selected_line_id} to {phone_number}")
-        self.make_call_signal.emit(self.selected_line_id, phone_number)
-        
-        # Clear selection - reset dropdown to "Select a line..."
-        self.selected_line_id = None
-        self.line_selector.setCurrentIndex(0)
-        
-        # Update UI
-        self._update_display()
-    
     def _on_hangup_clicked(self, line_id: int):
         """Handle hangup button click"""
         logger.info(f"[MainWindow] Hangup clicked signal received for line {line_id}")
         self.hangup_signal.emit(line_id)
+    
+    def _on_line_make_call(self, line_id: int, phone_number: str):
+        """Handle make call from line widget popup dialer"""
+        logger.info(f"[MainWindow] Making call on line {line_id} to {phone_number}")
+        self.make_call_signal.emit(line_id, phone_number)
     
     def _on_audio_channel_changed(self, line_id: int, new_channel: int):
         """Handle audio channel selection change"""
