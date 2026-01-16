@@ -73,10 +73,9 @@ class PhoneSystemApp:
             self.audio_router = AudioRouter()
             if not self.audio_router.start():
                 logger.error("Failed to start audio router")
-                self._show_error("Audio Router Error", 
-                               "Failed to initialize audio system. Check audio device configuration.")
+                logger.warning("Continuing without audio router for testing...")
                 self.audio_router = None
-                return False
+                # Don't return False - continue to show GUI even without audio
             
             # Initialize SIP engine
             logger.info("Initializing SIP engine...")
@@ -98,9 +97,12 @@ class PhoneSystemApp:
                 self._cleanup_on_init_failure()
                 return False
             
-            # Setup audio routing for all lines
-            for line in self.sip_engine.lines:
-                self.audio_router.route_line(line)
+            # Setup audio routing for all lines (if audio router is available)
+            if self.audio_router:
+                for line in self.sip_engine.lines:
+                    self.audio_router.route_line(line)
+            else:
+                logger.warning("Skipping audio routing setup - no audio router available")
             
             # Create main window
             logger.info("Creating main window...")
@@ -125,7 +127,7 @@ class PhoneSystemApp:
         try:
             if self.sip_engine:
                 logger.info("Cleaning up SIP engine...")
-                self.sip_engine.shutdown()
+                self.sip_engine.stop()
                 self.sip_engine = None
         except Exception as e:
             logger.error(f"Error cleaning up SIP engine: {e}")
@@ -181,6 +183,10 @@ class PhoneSystemApp:
             channel: Output channel (1-8)
         """
         try:
+            if not self.audio_router:
+                logger.warning(f"Cannot route audio - audio router not available")
+                return
+            
             logger.info(f"Routing line {line_id} audio to Output {channel}")
             self.audio_router.update_routing(line_id, channel)
         except Exception as e:

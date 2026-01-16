@@ -9,7 +9,7 @@ import os
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QGridLayout, QPushButton, QLabel, QFrame, QMessageBox, 
                              QComboBox, QDialog, QLineEdit, QSpinBox, QFormLayout, 
-                             QDialogButtonBox, QScrollArea)
+                             QDialogButtonBox, QScrollArea, QSizePolicy)
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QEvent, QCoreApplication
 from PyQt5.QtGui import QFont, QPalette, QColor
 import logging
@@ -502,8 +502,17 @@ class MainWindow(QMainWindow):
         
         # UI Setup
         self.setWindowTitle("Phone System - IFB/PL")
-        # Use available screen size instead of hardcoded resolution
-        # self.setGeometry(0, 0, 800, 480)  # Old: 7" touchscreen resolution
+        
+        # Get screen geometry and force window to use full screen size
+        from PyQt5.QtWidgets import QApplication
+        screen = QApplication.primaryScreen()
+        screen_geometry = screen.geometry()
+        logger.info(f"Screen detected: {screen_geometry.width()}x{screen_geometry.height()}")
+        self.setGeometry(screen_geometry)
+        
+        # Make window fullscreen and responsive to any screen size
+        self.showFullScreen()
+        logger.info(f"Window geometry after showFullScreen: {self.geometry().width()}x{self.geometry().height()}")
         
         # Apply dark theme
         self._apply_theme()
@@ -552,19 +561,42 @@ class MainWindow(QMainWindow):
     def _create_ui(self):
         """Create main UI layout"""
         central_widget = QWidget()
+        central_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setCentralWidget(central_widget)
         
         main_layout = QHBoxLayout(central_widget)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(3, 3, 3, 3)
+        main_layout.setSpacing(5)
         
         # Left panel: Line status widgets
         left_panel = self._create_line_panel()
+        left_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         main_layout.addWidget(left_panel, stretch=2)
         
-        # Right panel: Dialer and audio routing
+        # Right panel: Dialer and audio routing (in scroll area for small screens)
+        right_scroll = QScrollArea()
+        right_scroll.setWidgetResizable(True)
+        right_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        right_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        right_scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                background: rgba(255, 255, 255, 0.1);
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: rgba(0, 212, 255, 0.5);
+                border-radius: 4px;
+                min-height: 30px;
+            }
+        """)
         right_panel = self._create_control_panel()
-        main_layout.addWidget(right_panel, stretch=1)
+        right_scroll.setWidget(right_panel)
+        main_layout.addWidget(right_scroll, stretch=1)
     
     def _create_line_panel(self) -> QWidget:
         """Create panel with 8 line status widgets"""
@@ -583,8 +615,8 @@ class MainWindow(QMainWindow):
         """)
         
         layout = QGridLayout(panel)
-        layout.setSpacing(10)
-        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(8)
+        layout.setContentsMargins(10, 10, 10, 10)
         
         # Create 8 line widgets (2 columns x 4 rows)
         self.line_widgets = []
@@ -619,14 +651,17 @@ class MainWindow(QMainWindow):
         """)
         
         layout = QVBoxLayout(panel)
-        layout.setSpacing(15)
-        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Top row: Line selector and Settings button
+        top_layout = QHBoxLayout()
+        top_layout.setSpacing(10)
         
         # Line selection dropdown - shows only available lines
         self.line_selector = QComboBox()
         self.line_selector.setFont(QFont("Segoe UI", 11, QFont.Bold))
-        self.line_selector.setMinimumHeight(60)
-        self.line_selector.setMinimumWidth(400)
+        self.line_selector.setMinimumHeight(50)
         self.line_selector.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.line_selector.currentIndexChanged.connect(self._on_line_selector_changed)
         self.line_selector.setStyleSheet("""
@@ -673,21 +708,13 @@ class MainWindow(QMainWindow):
                 min-width: 400px;
             }
         """)
-        layout.addWidget(self.line_selector)
+        top_layout.addWidget(self.line_selector, stretch=1)
         
-        # Dialer widget
-        self.dialer = DialerWidget(self)
-        self.dialer.call_requested.connect(self._on_call_requested)
-        layout.addWidget(self.dialer, stretch=1)
-        
-        # Audio routing widget
-        self.audio_widget = AudioWidget(self.audio_router, self)
-        layout.addWidget(self.audio_widget)
-        
-        # Settings button at the bottom
-        self.settings_btn = QPushButton("⚙ Settings")
-        self.settings_btn.setFont(QFont("Segoe UI", 12, QFont.Bold))
-        self.settings_btn.setMinimumHeight(50)
+        # Settings button (gear icon only)
+        self.settings_btn = QPushButton("⚙")
+        self.settings_btn.setFont(QFont("Segoe UI", 18, QFont.Bold))
+        self.settings_btn.setMinimumSize(50, 50)
+        self.settings_btn.setMaximumSize(60, 60)
         self.settings_btn.clicked.connect(self._show_settings)
         self.settings_btn.setStyleSheet("""
             QPushButton {
@@ -700,7 +727,6 @@ class MainWindow(QMainWindow):
                 border-radius: 10px;
                 color: white;
                 font-weight: bold;
-                padding: 10px;
             }
             QPushButton:hover {
                 background: qlineargradient(
@@ -718,7 +744,18 @@ class MainWindow(QMainWindow):
                 );
             }
         """)
-        layout.addWidget(self.settings_btn)
+        top_layout.addWidget(self.settings_btn)
+        
+        layout.addLayout(top_layout)
+        
+        # Dialer widget
+        self.dialer = DialerWidget(self)
+        self.dialer.call_requested.connect(self._on_call_requested)
+        layout.addWidget(self.dialer, stretch=1)
+        
+        # Audio routing widget
+        self.audio_widget = AudioWidget(self.audio_router, self)
+        layout.addWidget(self.audio_widget)
         
         return panel
     
@@ -890,16 +927,20 @@ class MainWindow(QMainWindow):
             self._update_display()
     
     def _update_display(self):
-        """Update all line displays"""
-        for widget in self.line_widgets:
-            widget.update_display()
-        
-        # Update audio routing display
-        lines = [self.sip_engine.get_line(i) for i in range(1, 9)]
-        self.audio_widget.update_routing_display(lines)
-        
-        # Update line selector dropdown
-        self._update_line_selector()
+        """Update all line displays - optimized for large screens"""
+        try:
+            # Update widgets - caching in update_display() prevents unnecessary work
+            for widget in self.line_widgets:
+                widget.update_display()
+            
+            # Update audio routing display (has its own caching)
+            lines = [self.sip_engine.get_line(i) for i in range(1, 9)]
+            self.audio_widget.update_routing_display(lines)
+            
+            # Update line selector dropdown (has its own caching)
+            self._update_line_selector()
+        except Exception as e:
+            logger.error(f"Error in _update_display: {e}", exc_info=True)
     
     def _show_styled_message(self, title: str, message: str):
         """Show a styled message dialog"""
@@ -1053,15 +1094,6 @@ class MainWindow(QMainWindow):
             QCoreApplication.instance().setOverrideCursor(Qt.BlankCursor)
             self.cursor_visible = False
             logger.info("Mouse cursor hidden")
-    
-    def _show_settings(self):
-        """Show SIP settings dialog"""
-        logger.info("Opening SIP settings dialog")
-        dialog = SIPSettingsDialog(self)
-        result = dialog.exec_()
-        
-        if result == QDialog.Accepted:
-            logger.info("SIP settings updated - restart required")
     
     def closeEvent(self, event):
         """Handle window close"""

@@ -44,17 +44,42 @@ class BaresipProcess:
             sip_user = self.config.get("username", "")
             sip_server = self.config.get("sip_server", "")
             sip_password = self.config.get("password", "")
+            sip_port = self.config.get("sip_port", 5060)
+            transport = self.config.get("transport", "UDP").lower()
+            caller_id_name = self.config.get("caller_id_name", "")
+            caller_id_number = self.config.get("caller_id_number", "")
             
-            # Format: <sip:user@domain>;auth_pass=password
-            account_line = f"<sip:{sip_user}@{sip_server}>;auth_pass={sip_password}\n"
+            # Format: <sip:user@domain:port;transport=udp>;auth_pass=password;displayname="Name";regint=300
+            account_params = []
+            account_params.append(f"auth_pass={sip_password}")
+            
+            if caller_id_name:
+                # Escape quotes in display name
+                safe_name = caller_id_name.replace('"', '\\"')
+                account_params.append(f'displayname="{safe_name}"')
+            
+            # Registration interval (5 minutes = 300 seconds)
+            account_params.append("regint=300")
+            
+            # Build the account line
+            # Format: <sip:user@server:port;transport=protocol>;param1=val1;param2=val2
+            transport_param = f";transport={transport}" if transport != "udp" else ""
+            port_str = f":{sip_port}" if sip_port != 5060 else ""
+            params_str = ";".join(account_params)
+            
+            account_line = f"<sip:{sip_user}@{sip_server}{port_str}{transport_param}>;{params_str}\n"
             
             with open(accounts_file, "w") as f:
                 f.write(account_line)
             # Secure file permissions (only owner can read/write)
             os.chmod(accounts_file, 0o600)
             
+            logger.debug(f"Line {self.line_id}: Account config - Server: {sip_server}:{sip_port}, Transport: {transport.upper()}, Display: {caller_id_name}")
+            
             # Create config file
             config_file = self.config_dir / "config"
+            transport = self.config.get("transport", "UDP").upper()
+            
             with open(config_file, "w") as f:
                 f.write(f"# Baresip configuration for Line {self.line_id}\n")
                 f.write("\n# Audio settings\n")
@@ -63,6 +88,16 @@ class BaresipProcess:
                 f.write("audio_alert alsa,default\n")
                 f.write("\n# SIP settings\n")
                 f.write("sip_listen 0.0.0.0:0\n")
+                
+                # Add transport-specific settings
+                if transport == "TLS":
+                    f.write("sip_trans_def tls\n")
+                    f.write("sip_certificate /etc/ssl/certs/ca-certificates.crt\n")
+                elif transport == "TCP":
+                    f.write("sip_trans_def tcp\n")
+                else:  # UDP (default)
+                    f.write("sip_trans_def udp\n")
+                
                 f.write("\n# Disable video\n")
                 f.write("video_display no\n")
                 f.write("video_source no\n")
@@ -181,6 +216,14 @@ class BaresipProcess:
                 logger.error(f"Line {self.line_id}: Monitor thread crashed: {e}")
                 self.running = False
                 self.phone_line.reset()  # Reset line state on monitor failure
+                # Attempt to restart process if it died
+                if self.process and self.process.poll() is not None:
+                    logger.info(f"Line {self.line_id}: Attempting to restart baresip after monitor crash...")
+                    time.sleep(1)  # Small delay before restart
+                    try:
+                        self.start()  # Restart the process
+                    except Exception as restart_error:
+                        logger.error(f"Line {self.line_id}: Failed to restart baresip: {restart_error}")
         finally:
             # Handle process death (stdout EOF reached)
             if self.running and self.process:
@@ -189,6 +232,13 @@ class BaresipProcess:
                     logger.error(f"Line {self.line_id}: Baresip process died (exit code {exit_code})")
                     self.running = False
                     self.phone_line.reset()
+                    # Attempt to restart process
+                    logger.info(f"Line {self.line_id}: Attempting to restart baresip after process death...")
+                    time.sleep(1)  # Small delay before restart
+                    try:
+                        self.start()  # Restart the process
+                    except Exception as restart_error:
+                        logger.error(f"Line {self.line_id}: Failed to restart baresip: {restart_error}")
     
     def make_call(self, phone_number: str) -> bool:
         """Make outgoing call"""
@@ -200,8 +250,8 @@ class BaresipProcess:
             logger.error(f"Line {self.line_id}: Baresip stdin closed")
             return False
         
-        # Validate phone number - only allow digits, +, -, *, #, and spaces
-        if not phone_number or not re.match(r'^[0-9+\-*#\s]+$', phone_number):
+        # Validate phone number - only allow digits, +, -, and spaces (removed * and #)
+        if not phone_number or not re.match(r'^[0-9+\-\s]+$', phone_number):
             logger.error(f"Line {self.line_id}: Invalid phone number format: {phone_number}")
             return False
         
@@ -214,16 +264,23 @@ class BaresipProcess:
             return False
         
         try:
+            # Remove any existing @domain from phone_number to prevent invalid URIs
+            if '@' in phone_number:
+                phone_number = phone_number.split('@')[0]
+            
             sip_uri = f"sip:{phone_number}@{self.config['sip_server']}"
             dial_cmd = f"/dial {sip_uri}\n"
             self.process.stdin.write(dial_cmd)
             self.process.stdin.flush()
             
             # Only update phone line state AFTER successful write/flush
-            self.current_call_id = phone_number
+            # Set current_call_id AFTER dial succeeds to avoid race condition
             if not self.phone_line.dial(phone_number):
                 logger.error(f"Line {self.line_id}: Phone line rejected dial request")
                 return False
+            
+            # Only set current_call_id after successful dial
+            self.current_call_id = phone_number
             
             logger.info(f"Line {self.line_id}: Dialing {phone_number}")
             return True
@@ -252,6 +309,9 @@ class BaresipProcess:
             
             # Stop the monitor thread gracefully
             self.running = False
+            
+            # Give monitor thread a moment to finish current read
+            time.sleep(0.1)
             
             # Terminate the baresip process
             self.process.terminate()
@@ -311,25 +371,27 @@ class BaresipProcess:
                 logger.warning(f"Line {self.line_id}: Error during stop: {e}")
                 try:
                     self.process.kill()
-                except:
+                except Exception:
                     pass
             finally:
                 # Explicitly close pipes to prevent resource leaks
                 if self.process.stdin:
                     try:
                         self.process.stdin.close()
-                    except:
+                    except Exception:
                         pass
                 if self.process.stdout:
                     try:
                         self.process.stdout.close()
-                    except:
+                    except Exception:
                         pass
             
             self.process = None
         
         if self.monitor_thread and self.monitor_thread.is_alive():
-            self.monitor_thread.join(timeout=1)
+            self.monitor_thread.join(timeout=2)  # Increased timeout
+            if self.monitor_thread.is_alive():
+                logger.warning(f"Line {self.line_id}: Monitor thread did not stop cleanly")
             self.monitor_thread = None
         
         logger.info(f"Line {self.line_id}: Baresip stopped")
@@ -369,9 +431,24 @@ class SIPEngine:
                     logger.error(f"Config field '{field}' cannot be empty")
                     return False
             
+            # Validate port if present
+            if 'sip_port' in self.config:
+                port = self.config['sip_port']
+                if not isinstance(port, int) or not (1 <= port <= 65535):
+                    logger.error(f"Invalid SIP port: {port} (must be 1-65535)")
+                    return False
+            
+            # Set defaults for optional fields
+            self.config.setdefault("sip_port", 5060)
+            self.config.setdefault("transport", "UDP")
+            self.config.setdefault("caller_id_name", "Phone System")
+            self.config.setdefault("caller_id_number", "")
+            
             logger.info(f"Loaded SIP config from {config_path}")
-            logger.info(f"SIP Server: {self.config['sip_server']}")
+            logger.info(f"SIP Server: {self.config['sip_server']}:{self.config['sip_port']}")
             logger.info(f"Username: {self.config['username']}")
+            logger.info(f"Transport: {self.config['transport']}")
+            logger.info(f"Caller ID: {self.config['caller_id_name']} <{self.config['caller_id_number']}>")
             return True
             
         except Exception as e:

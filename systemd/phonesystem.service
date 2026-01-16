@@ -8,17 +8,24 @@ Type=simple
 User=procomm
 Group=procomm
 SupplementaryGroups=input video tty audio render
-WorkingDirectory=/home/procomm/ProComm
+WorkingDirectory=/home/procomm/procomm
 TTYPath=/dev/tty1
 StandardInput=tty
-StandardOutput=append:/home/procomm/ProComm/logs/systemd.log
-StandardError=append:/home/procomm/ProComm/logs/systemd.log
+StandardOutput=append:/home/procomm/procomm/logs/systemd.log
+StandardError=append:/home/procomm/procomm/logs/systemd.log
+# GPU Acceleration - Use EGLFS with proper GPU drivers
 Environment=QT_QPA_PLATFORM=eglfs
-Environment=QT_QPA_EGLFS_ALWAYS_SET_MODE=1
+Environment=QT_QPA_EGLFS_INTEGRATION=eglfs_kms
+Environment=QT_QPA_EGLFS_KMS_CONFIG=/etc/qt5/eglfs_kms_config.json
+Environment=QT_QPA_EGLFS_FORCE888=1
+# Font and input settings - use tslib for better touch/mouse handling
 Environment=QT_QPA_FONTDIR=/usr/share/fonts
-Environment=QT_QPA_GENERIC_PLUGINS=evdevmouse,evdevkeyboard
+Environment=QT_QPA_GENERIC_PLUGINS=evdevmouse:/dev/input/event0:evdevkeyboard:/dev/input/event1
+Environment=QT_EVDEV_MOUSE_PARAMETERS=/dev/input/event0
+# Force GPU acceleration
+Environment=QT_OPENGL=es2
 ExecStartPre=-/usr/bin/clear
-ExecStart=/usr/bin/python3 /home/procomm/ProComm/main.py
+ExecStart=/usr/bin/python3 /home/procomm/procomm/main.py
 Restart=always
 RestartSec=5
 

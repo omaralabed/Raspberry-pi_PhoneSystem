@@ -38,15 +38,15 @@ class DialerWidget(QWidget):
     def _create_ui(self):
         """Create modern dialer UI"""
         layout = QVBoxLayout(self)
-        layout.setSpacing(10)
+        layout.setSpacing(5)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # Number display with modern styling
+        # Number display with modern styling - more compact
         self.number_display = QLineEdit()
         self.number_display.setReadOnly(True)
         self.number_display.setAlignment(Qt.AlignRight)
-        self.number_display.setFont(QFont("Segoe UI", 20, QFont.Bold))
-        self.number_display.setMinimumHeight(60)
+        self.number_display.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        self.number_display.setMinimumHeight(40)
         self.number_display.setStyleSheet("""
             QLineEdit {
                 background: qlineargradient(
@@ -56,8 +56,8 @@ class DialerWidget(QWidget):
                 );
                 color: #00d4ff;
                 border: 2px solid rgba(0, 212, 255, 0.3);
-                border-radius: 10px;
-                padding: 10px 15px;
+                border-radius: 8px;
+                padding: 6px 10px;
                 letter-spacing: 2px;
             }
         """)
@@ -65,7 +65,7 @@ class DialerWidget(QWidget):
         
         # Number pad grid with modern buttons
         grid = QGridLayout()
-        grid.setSpacing(8)
+        grid.setSpacing(4)
         
         # Button layout: standard phone pad
         buttons = [
@@ -86,9 +86,9 @@ class DialerWidget(QWidget):
         action_layout.setSpacing(8)
         
         # Backspace button
-        self.backspace_btn = QPushButton("Delete")
-        self.backspace_btn.setMinimumHeight(55)
-        self.backspace_btn.setFont(QFont("Segoe UI", 18, QFont.Bold))
+        self.backspace_btn = QPushButton("Del")
+        self.backspace_btn.setMinimumHeight(40)
+        self.backspace_btn.setFont(QFont("Segoe UI", 14, QFont.Bold))
         self.backspace_btn.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(
@@ -98,7 +98,7 @@ class DialerWidget(QWidget):
                 );
                 color: white;
                 border: none;
-                border-radius: 8px;
+                border-radius: 6px;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -110,16 +110,15 @@ class DialerWidget(QWidget):
             }
             QPushButton:pressed {
                 background: #cc6600;
-                padding: 1px 0px 0px 1px;
             }
         """)
         self.backspace_btn.clicked.connect(self._on_backspace)
         action_layout.addWidget(self.backspace_btn)
         
         # Clear button
-        self.clear_btn = QPushButton("Clear")
-        self.clear_btn.setMinimumHeight(55)
-        self.clear_btn.setFont(QFont("Segoe UI", 18, QFont.Bold))
+        self.clear_btn = QPushButton("Clr")
+        self.clear_btn.setMinimumHeight(40)
+        self.clear_btn.setFont(QFont("Segoe UI", 14, QFont.Bold))
         self.clear_btn.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(
@@ -129,7 +128,7 @@ class DialerWidget(QWidget):
                 );
                 color: white;
                 border: none;
-                border-radius: 8px;
+                border-radius: 6px;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -141,16 +140,15 @@ class DialerWidget(QWidget):
             }
             QPushButton:pressed {
                 background: #cc3e3e;
-                padding: 1px 0px 0px 1px;
             }
         """)
         self.clear_btn.clicked.connect(self._on_clear)
         action_layout.addWidget(self.clear_btn)
         
         # Recents button
-        self.recents_btn = QPushButton("📋 Recents")
-        self.recents_btn.setMinimumHeight(55)
-        self.recents_btn.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        self.recents_btn = QPushButton("📋")
+        self.recents_btn.setMinimumHeight(40)
+        self.recents_btn.setFont(QFont("Segoe UI", 14, QFont.Bold))
         self.recents_btn.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(
@@ -160,7 +158,7 @@ class DialerWidget(QWidget):
                 );
                 color: white;
                 border: none;
-                border-radius: 8px;
+                border-radius: 6px;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -172,7 +170,6 @@ class DialerWidget(QWidget):
             }
             QPushButton:pressed {
                 background: #5566cc;
-                padding: 1px 0px 0px 1px;
             }
             QPushButton:disabled {
                 background-color: #4a4a4a;
@@ -185,10 +182,10 @@ class DialerWidget(QWidget):
         
         layout.addLayout(action_layout)
         
-        # Call button (large, prominent with glow effect)
+        # Call button (large, prominent with glow effect) - more compact
         self.call_btn = QPushButton("📞 CALL")
-        self.call_btn.setMinimumHeight(70)
-        self.call_btn.setFont(QFont("Segoe UI", 18, QFont.Bold))
+        self.call_btn.setMinimumHeight(50)
+        self.call_btn.setFont(QFont("Segoe UI", 14, QFont.Bold))
         self.call_btn.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(
@@ -223,10 +220,10 @@ class DialerWidget(QWidget):
         layout.addWidget(self.call_btn)
     
     def _create_number_button(self, text: str) -> QPushButton:
-        """Create a modern number pad button"""
+        """Create a modern number pad button - compact for small screens"""
         btn = QPushButton(text)
-        btn.setMinimumHeight(60)
-        btn.setFont(QFont("Segoe UI", 22, QFont.Bold))
+        btn.setMinimumHeight(40)
+        btn.setFont(QFont("Segoe UI", 16, QFont.Bold))
         btn.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(
@@ -236,7 +233,7 @@ class DialerWidget(QWidget):
                 );
                 color: white;
                 border: 2px solid rgba(255, 255, 255, 0.15);
-                border-radius: 10px;
+                border-radius: 8px;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -254,7 +251,6 @@ class DialerWidget(QWidget):
                     stop:1 #00a8cc
                 );
                 color: #1a1a2e;
-                padding: 2px 0px 0px 2px;
             }
         """)
         btn.clicked.connect(lambda: self._on_digit_pressed(text))

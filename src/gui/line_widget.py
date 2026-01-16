@@ -40,6 +40,7 @@ class LineWidget(QWidget):
         self._last_state = None
         self._last_channel = None
         self._last_selected = None
+        self._last_style_state = None  # Cache for style to avoid expensive updates
         
         self._create_ui()
         self.update_display()
@@ -48,8 +49,7 @@ class LineWidget(QWidget):
     
     def _create_ui(self):
         """Create line widget UI"""
-        self.setMinimumHeight(170)
-        self.setMaximumHeight(200)
+        # No fixed height - fully adaptive to available space
         
         # Main frame with modern styling
         self.frame = QFrame(self)
@@ -135,9 +135,7 @@ class LineWidget(QWidget):
         
         # Audio channel picker with modern styling
         self.channel_picker = QComboBox()
-        self.channel_picker.setMaximumWidth(125)
-        self.channel_picker.setMinimumWidth(125)
-        self.channel_picker.setMinimumHeight(40)
+        # Remove fixed sizes - let it adapt
         self.channel_picker.addItem("🔇 None ▼", 0)  # No output with icon and down arrow
         for i in range(1, 9):
             self.channel_picker.addItem(f"🔊 {i}", i)
@@ -193,10 +191,7 @@ class LineWidget(QWidget):
         # Hangup button next to picker with safe spacing
         self.hangup_btn = QPushButton("📞 HANG UP")
         self.hangup_btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
-        self.hangup_btn.setMinimumHeight(40)
-        self.hangup_btn.setMaximumHeight(40)
-        self.hangup_btn.setMinimumWidth(110)
-        self.hangup_btn.setMaximumWidth(130)
+        # Remove fixed sizes - let it adapt
         self.hangup_btn.setEnabled(False)  # Start disabled
         self.hangup_btn.clicked.connect(self._on_hangup)
         self.hangup_btn.setStyleSheet("""
@@ -321,7 +316,8 @@ class LineWidget(QWidget):
         selected_changed = (self.is_selected != self._last_selected)
         
         if not (state_changed or channel_changed or selected_changed):
-            return  # Nothing changed, skip expensive updates
+            # Nothing changed - skip all updates for better performance on large screens
+            return
         
         # Status text (only if state changed)
         if state_changed:
@@ -338,7 +334,8 @@ class LineWidget(QWidget):
             else:
                 self.audio_label.setText(f"Out {current_channel}")
             
-            # Update channel picker
+            # Update channel picker only when channel actually changed
+            # This is more efficient than syncing on every update
             self.channel_picker.blockSignals(True)
             for i in range(self.channel_picker.count()):
                 if self.channel_picker.itemData(i) == current_channel:
@@ -347,7 +344,11 @@ class LineWidget(QWidget):
             self.channel_picker.blockSignals(False)
         
         # Update colors (only if state, channel, or selection changed)
-        self._update_style()
+        # Check if style actually needs updating to avoid expensive operations on large screens
+        style_key = (self.line.state, self.line.audio_output.channel, self.is_selected)
+        if style_key != self._last_style_state:
+            self._update_style()
+            self._last_style_state = style_key
         
         # Update cache
         self._last_state = current_state

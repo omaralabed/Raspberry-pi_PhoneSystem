@@ -8,13 +8,59 @@ import json
 import logging
 from typing import Dict, Optional, List
 import sounddevice as sd
-import numpy as np
 import threading
+import numpy as np
 import queue
+import subprocess
+import signal
+import os
 
 from .phone_line import PhoneLine, AudioOutput
 
 logger = logging.getLogger(__name__)
+
+
+def _tone_generator_process(device_index, device_name, channel, sample_rate, device_channels):
+    """
+    Standalone function to generate test tone in a separate process.
+    This runs in its own process with its own memory space, completely isolated from the main GUI.
+    """
+    import sounddevice as sd
+    import numpy as np
+    import time
+    import sys
+    
+    def callback(outdata, frames, time_info, status):
+        if status:
+            print(f'Audio status: {status}', file=sys.stderr, flush=True)
+        t = np.linspace(0, frames / sample_rate, frames)
+        tone = np.sin(2 * np.pi * 1000 * t) * 0.3  # 1kHz at 30% volume
+        outdata.fill(0)
+        outdata[:, channel - 1] = tone[:, np.newaxis]
+    
+    try:
+        device = device_index if device_index is not None else device_name
+        print(f'Starting tone on device={device}, channel={channel}', flush=True)
+        
+        stream = sd.OutputStream(
+            device=device,
+            channels=device_channels,
+            callback=callback,
+            samplerate=sample_rate,
+            blocksize=256
+        )
+        stream.start()
+        print(f'Tone playing on channel {channel}', flush=True)
+        
+        # Keep the process alive
+        while True:
+            time.sleep(0.5)
+            
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        print(f'Tone process error: {e}', file=sys.stderr, flush=True)
+        sys.exit(1)
 
 
 class AudioRouter:
@@ -40,6 +86,7 @@ class AudioRouter:
         
         # Number of output channels (up to 8)
         self.num_outputs = self.config.get("num_outputs", 8)
+        self.device_channels = None  # Cache device channel count
         
         # Audio routing map: line_id -> output channel
         self.routing_map: Dict[int, int] = {}
@@ -52,6 +99,7 @@ class AudioRouter:
         self.test_tone_active = False
         self.test_tone_channel = None
         self.test_tone_stream = None
+        self.test_tone_process = None  # Subprocess for tone generation
         
         # State
         self.is_running = False
@@ -79,24 +127,20 @@ class AudioRouter:
             True if started successfully
         """
         try:
-            # Find audio device
-            if self.device_index is None:
-                self.device_index = self._find_device()
+            # Don't actually query the device here to avoid locking it
+            # The test tone child process will access the device independently
             
-            if self.device_index is None:
-                logger.error("Audio device not found")
+            # Just validate configuration
+            if self.device_index is None and not self.device_name:
+                logger.error("No audio device configured")
                 return False
             
-            # Verify device has enough output channels
-            device_info = sd.query_devices(self.device_index)
-            max_outputs = device_info['max_output_channels']
-            
-            if max_outputs < self.num_outputs:
-                logger.warning(f"Device has {max_outputs} outputs, configured for {self.num_outputs}")
-                self.num_outputs = min(self.num_outputs, max_outputs)
+            # Assume configuration is correct - don't query device
+            self.device_channels = self.num_outputs  # Use configured value
             
             self.is_running = True
-            logger.info(f"Audio router started on device: {device_info['name']}")
+            logger.info(f"Audio router started with device: {self.device_name or self.device_index}")
+            logger.info(f"Device queries skipped to avoid hardware locking")
             return True
             
         except Exception as e:
@@ -130,7 +174,14 @@ class AudioRouter:
         # If no device name configured, use default
         if not self.device_name:
             logger.info("No audio device name configured, using default")
-            return sd.default.device[1]  # Default output device
+            try:
+                default_device = sd.default.device
+                if default_device and len(default_device) > 1:
+                    return default_device[1]  # Default output device
+            except (TypeError, IndexError, AttributeError):
+                logger.error("No default audio output device available")
+                return None
+            return None
         
         devices = sd.query_devices()
         
@@ -140,7 +191,14 @@ class AudioRouter:
                 return idx
         
         logger.warning(f"Device '{self.device_name}' not found, using default")
-        return sd.default.device[1]  # Default output device
+        try:
+            default_device = sd.default.device
+            if default_device and len(default_device) > 1:
+                return default_device[1]  # Default output device
+        except (TypeError, IndexError, AttributeError):
+            logger.error("No default audio output device available")
+            return None
+        return None
     
     def route_line(self, line: PhoneLine) -> bool:
         """
@@ -281,84 +339,206 @@ class AudioRouter:
     
     def start_continuous_tone(self, channel: int) -> bool:
         """
-        Start continuous test tone on specified output channel
+        Start continuous test tone on specified output channel (truly non-blocking)
         
         Args:
             channel: Output channel (1-8) to test
             
         Returns:
-            True if started successfully
+            True (always returns immediately, actual tone starts asynchronously)
         """
+        logger.info(f"[ENTRY] start_continuous_tone called for channel {channel}")
+        
+        # Validate outside lock first
         if not self.is_running:
             logger.error("Audio router not running")
             return False
+        
+        logger.info(f"[CHECK1] is_running passed")
         
         if not 1 <= channel <= self.num_outputs:
             logger.error(f"Invalid channel {channel}, must be 1-{self.num_outputs}")
             return False
         
-        # Stop any existing tone
-        self.stop_continuous_tone()
+        logger.info(f"[CHECK2] channel validation passed")
         
-        try:
-            # Generate continuous 1 kHz sine wave tone
-            def audio_callback(outdata, frames, time, status):
-                if status:
-                    logger.warning(f"Audio callback status: {status}")
+        # Launch subprocess in a daemon thread so THIS function returns immediately
+        def start_in_thread():
+            import sys
+            try:
+                print(f"[SPAWN_THREAD] Started for channel {channel}", file=sys.stderr, flush=True)
+                logger.info(f"[THREAD] start_in_thread started for channel {channel}")
                 
-                t = np.linspace(0, frames / self.sample_rate, frames)
-                tone = np.sin(2 * np.pi * 1000 * t) * 0.3  # 30% volume
+                # Stop any existing tone first (inside thread, blocking is OK)
+                try:
+                    old_proc = None
+                    with self.lock:
+                        if self.test_tone_process:
+                            old_proc = self.test_tone_process
+                            self.test_tone_process = None
+                            self.test_tone_active = False
+                            self.test_tone_channel = None
+                    
+                    # Kill old process if it exists (outside lock) - use kill immediately
+                    if old_proc:
+                        try:
+                            logger.info(f"[THREAD] Killing old tone process PID {old_proc.pid}")
+                            old_proc.kill()  # Force kill immediately
+                            old_proc.wait(timeout=0.2)  # Brief wait
+                            logger.info(f"[THREAD] Old tone process {old_proc.pid} killed")
+                        except subprocess.TimeoutExpired:
+                            logger.warning(f"[THREAD] Old process {old_proc.pid} didn't die, ignoring")
+                        except Exception as e:
+                            logger.warning(f"[THREAD] Error killing old process: {e}")
+                except Exception as e:
+                    logger.warning(f"[THREAD] Error in stop existing tone: {e}")
                 
-                # Clear all channels
-                outdata.fill(0)
+                # Get path to tone_generator.py
+                import os.path
+                import sys
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                tone_script = os.path.join(script_dir, 'tone_generator.py')
                 
-                # Assign tone to selected channel (channel-1 for 0-based index)
-                outdata[:, channel - 1] = tone[:, np.newaxis]
-            
-            # Start output stream
-            num_device_channels = sd.query_devices(self.device_index)['max_output_channels']
-            self.test_tone_stream = sd.OutputStream(
-                device=self.device_index,
-                channels=num_device_channels,
-                callback=audio_callback,
-                samplerate=self.sample_rate,
-                blocksize=self.buffer_size
-            )
-            self.test_tone_stream.start()
-            
-            self.test_tone_active = True
-            self.test_tone_channel = channel
-            logger.info(f"Started continuous tone on Output {channel}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to start continuous tone: {e}")
-            return False
+                # Launch subprocess with fresh Python interpreter
+                # This avoids inheriting parent's PortAudio state
+                # For tone testing, use the Scarlett USB device directly (index 1)
+                # This is the actual audio interface - use it directly for tone testing
+                device_arg = '1'  # Scarlett 8i6 USB device
+                num_channels_arg = '6'  # Scarlett has 6 outputs
+                
+                logger.info(f"Tone will use Scarlett USB device (index 1), channel={channel}, num_channels={num_channels_arg}")
+                
+                logger.info(f"Starting tone: device={device_arg}, channel={channel}, num_channels={num_channels_arg}")
+                
+                # Redirect stderr to a log file so we can see errors
+                import os
+                log_file = os.path.join(os.path.dirname(tone_script), '..', 'logs', 'tone_generator.log')
+                os.makedirs(os.path.dirname(log_file), exist_ok=True)
+                
+                proc = subprocess.Popen(
+                    ['/usr/bin/python3', '-u', tone_script, device_arg, str(channel), '1000', '0.3', num_channels_arg],
+                    stdout=subprocess.PIPE,
+                    stderr=open(log_file, 'a'),  # Append to log file
+                    stdin=subprocess.DEVNULL
+                )
+                
+                print(f"Spawned tone generator PID {proc.pid} for channel {channel}", 
+                      file=sys.stderr, flush=True)
+                
+                # Store process handle
+                with self.lock:
+                    self.test_tone_process = proc
+                    self.test_tone_active = True
+                    self.test_tone_channel = channel
+                
+                logger.info(f"Spawned tone process for Output {channel} (PID: {proc.pid})")
+                
+            except Exception as e:
+                logger.error(f"Failed to spawn tone process: {e}", exc_info=True)
+                with self.lock:
+                    self.test_tone_active = False
+                    self.test_tone_channel = None
+        
+        # Start the subprocess in a background thread
+        logger.info(f"[BEFORE THREAD] About to create thread")
+        spawn_thread = threading.Thread(target=start_in_thread, daemon=True)
+        logger.info(f"[AFTER CREATE] Thread object created")
+        spawn_thread.start()
+        logger.info(f"[AFTER START] Thread.start() called")
+        
+        # Return IMMEDIATELY - don't wait for thread or subprocess
+        logger.info(f"Initiated async tone start for channel {channel}")
+        return True
     
     def stop_continuous_tone(self) -> bool:
         """
-        Stop continuous test tone
+        Stop continuous test tone (non-blocking)
         
         Returns:
             True if stopped successfully
         """
-        if not self.test_tone_active:
-            return True
+        proc = None
+        stopped_channel = None
         
-        try:
-            if self.test_tone_stream:
-                self.test_tone_stream.stop()
-                self.test_tone_stream.close()
-                self.test_tone_stream = None
+        logger.info("[STOP] stop_continuous_tone called")
+        
+        with self.lock:
+            if not self.test_tone_active:
+                logger.info("[STOP] No active tone to stop")
+                return True
             
+            proc = self.test_tone_process
+            stopped_channel = self.test_tone_channel
+            
+            logger.info(f"[STOP] Found active tone: PID={proc.pid if proc else 'None'}, channel={stopped_channel}")
+            
+            # Clear state immediately (before killing process)
+            self.test_tone_process = None
             self.test_tone_active = False
-            logger.info(f"Stopped continuous tone on Output {self.test_tone_channel}")
             self.test_tone_channel = None
-            return True
             
+            # Stop old stream if it exists (legacy)
+            if self.test_tone_stream:
+                try:
+                    self.test_tone_stream.stop()
+                    self.test_tone_stream.close()
+                except Exception:
+                    pass
+                self.test_tone_stream = None
+        
+        # Kill the subprocess immediately - use kill() for fast response
+        if proc:
+            try:
+                pid = proc.pid
+                logger.info(f"[STOP] Killing tone process immediately (PID: {pid})")
+                # Force kill immediately - don't wait
+                proc.kill()
+                # Wait briefly to ensure it's dead
+                import time
+                time.sleep(0.1)
+                if proc.poll() is None:  # Still running somehow
+                    logger.warning(f"[STOP] Process {pid} still running after kill, trying system kill")
+                    # Use system kill as backup
+                    import subprocess
+                    subprocess.run(['kill', '-9', str(pid)], timeout=0.5)
+                else:
+                    logger.info(f"[STOP] Tone process {pid} killed successfully")
+            except Exception as e:
+                logger.error(f"[STOP] Error killing tone process: {e}", exc_info=True)
+                # Try system kill as last resort
+                try:
+                    import subprocess
+                    subprocess.run(['kill', '-9', str(proc.pid)], timeout=0.5)
+                    logger.info(f"[STOP] Used system kill for PID {proc.pid}")
+                except:
+                    pass
+        
+        # Safety: Kill ALL tone_generator processes (in case we lost track of one)
+        # Try SIGTERM first (cleaner), then SIGKILL
+        try:
+            import subprocess
+            # First try graceful termination
+            result = subprocess.run(['pkill', '-TERM', '-f', 'tone_generator'], 
+                                  timeout=0.5, capture_output=True)
+            import time
+            time.sleep(0.1)
+            # Then force kill
+            result = subprocess.run(['pkill', '-9', '-f', 'tone_generator'], 
+                                  timeout=1.0, capture_output=True)
+            if result.returncode == 0:
+                logger.info("[STOP] Killed all tone_generator processes (safety cleanup)")
         except Exception as e:
-            logger.error(f"Failed to stop continuous tone: {e}")
-            return False
+            logger.warning(f"[STOP] Error in safety cleanup: {e}")
+        
+        if stopped_channel:
+            logger.info(f"[STOP] Stopped continuous tone on Output {stopped_channel}")
+        return True
+    
+    def cleanup(self):
+        """Clean up audio router resources"""
+        # Stop any active tone
+        self.stop_continuous_tone()
+        return True
     
     def get_status(self) -> Dict:
         """
