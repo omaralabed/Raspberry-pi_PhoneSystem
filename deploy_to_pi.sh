@@ -9,8 +9,8 @@ set -e  # Exit on error
 # Configuration
 PI_USER="procomm"
 PI_HOST="192.168.1.221"
-PI_DIR="~/PhoneSystem"
-LOCAL_DIR="/Users/viewvision/Desktop/PhoneSystem"
+PI_DIR="~/ProComm"
+LOCAL_DIR="/Users/viewvision/Desktop/ProComm"
 
 echo "================================================"
 echo "PhoneSystem - Direct Deployment to Pi"
